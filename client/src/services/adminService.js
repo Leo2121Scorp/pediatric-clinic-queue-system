@@ -6,6 +6,7 @@ import app, { firebaseConfig } from "../firebase/firebaseConfig";
 import { database } from "../firebase/database";
 import { auth } from "../firebase/auth";
 import { logAuditEvent, AUDIT_ACTIONS, AUDIT_CATEGORIES } from "./auditService";
+import { getEmailActionSettings } from "./authService";
 
 export const getActiveDoctor = async () => {
   const snapshot = await get(ref(database, "users"));
@@ -141,11 +142,7 @@ export const toggleUserStatus = async (uid, currentStatus) => {
 };
 
 export const sendAdminPasswordResetEmail = async (email) => {
-  const actionCodeSettings = {
-    url: `${window.location.origin}/reset-password`,
-    handleCodeInApp: false
-  };
-  return sendPasswordResetEmail(auth, email, actionCodeSettings);
+  return sendPasswordResetEmail(auth, email, getEmailActionSettings("/"));
 };
 
 export const deleteUserAccount = async (uid) => {

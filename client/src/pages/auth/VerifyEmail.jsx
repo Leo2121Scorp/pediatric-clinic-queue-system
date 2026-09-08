@@ -5,7 +5,7 @@ import { Mail, RefreshCw, LogOut, CheckCircle } from "lucide-react";
 import toast from "react-hot-toast";
 import { sendEmailVerification } from "firebase/auth";
 import { auth } from "../../firebase/auth";
-import { logoutUser, completeParentRegistration } from "../../services/authService";
+import { logoutUser, completeParentRegistration, getEmailActionSettings } from "../../services/authService";
 import OnboardingStepper from "../../components/auth/OnboardingStepper";
 
 export default function VerifyEmail() {
@@ -88,7 +88,7 @@ export default function VerifyEmail() {
           navigate("/onboarding/child");
           return;
       }
-      await sendEmailVerification(firebaseUser);
+      await sendEmailVerification(firebaseUser, getEmailActionSettings("/verify-email"));
       toast.success("Verification email sent!");
       setCooldown(60);
     } catch (error) {

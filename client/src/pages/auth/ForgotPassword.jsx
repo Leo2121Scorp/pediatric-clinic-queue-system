@@ -4,6 +4,7 @@ import { auth } from "../../firebase/auth";
 import { sendPasswordResetEmail } from "firebase/auth";
 import { Activity, Mail, ArrowRight } from "lucide-react";
 import toast from "react-hot-toast";
+import { getEmailActionSettings } from "../../services/authService";
 
 export default function ForgotPassword() {
   const [email, setEmail] = useState('');
@@ -15,11 +16,7 @@ export default function ForgotPassword() {
     setLoading(true);
 
     try {
-      const actionCodeSettings = {
-        url: `${window.location.origin}/reset-password`,
-        handleCodeInApp: true
-      };
-      await sendPasswordResetEmail(auth, email, actionCodeSettings);
+      await sendPasswordResetEmail(auth, email, getEmailActionSettings("/"));
       setIsSuccess(true);
       toast.success("Password reset email sent.");
     } catch (err) {

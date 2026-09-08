@@ -24,6 +24,12 @@ export const getParentPostAuthPath = (userData, firebaseUser) => {
   return "/parent";
 };
 
+/** Continue URL settings for Firebase email actions (web custom handler). */
+export const getEmailActionSettings = (continuePath = "/") => ({
+  url: `${window.location.origin}${continuePath.startsWith("/") ? continuePath : `/${continuePath}`}`,
+  handleCodeInApp: false,
+});
+
 export const reactivateSelfDeactivatedParent = async (uid) => {
   if (!uid) return;
   await update(ref(database, `users/${uid}`), {
@@ -75,7 +81,7 @@ export const registerUser = async (
     }
 
     try {
-      await sendEmailVerification(user);
+      await sendEmailVerification(user, getEmailActionSettings("/verify-email"));
     } catch (err) {
       console.error("Could not send verification email:", err);
       throw { code: 'auth/verification-email-failed', originalError: err };

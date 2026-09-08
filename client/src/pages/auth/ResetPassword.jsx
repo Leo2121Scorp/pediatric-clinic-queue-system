@@ -32,7 +32,7 @@ export default function ResetPassword() {
 
   useEffect(() => {
     if (!oobCode) {
-      setError("This password reset link is invalid or has expired. Please request a new password reset email.");
+      setError(mapAuthError("auth/invalid-action-code"));
       setValidating(false);
       return;
     }
@@ -44,7 +44,7 @@ export default function ResetPassword() {
       })
       .catch((err) => {
         console.error("Code verification failed:", err);
-        setError("This password reset link is invalid or has expired. Please request a new password reset email.");
+        setError(mapAuthError(err.code));
         setValidating(false);
       });
   }, [oobCode]);

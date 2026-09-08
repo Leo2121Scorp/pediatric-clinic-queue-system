@@ -8,6 +8,7 @@ import Register from "../pages/auth/Register";
 import ForgotPassword from "../pages/auth/ForgotPassword";
 import ResetPassword from "../pages/auth/ResetPassword";
 import VerifyEmail from "../pages/auth/VerifyEmail";
+import AuthAction from "../pages/auth/AuthAction";
 
 // Parent Layout and Pages
 import ParentLayout from "../components/parent/ParentLayout";
@@ -62,6 +63,7 @@ export default function AppRoutes() {
         <Route path="/register" element={<Register />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/reset-password" element={<ResetPassword />} />
+        <Route path="/auth/action" element={<AuthAction />} />
         <Route path="/verify-email" element={<ProtectedRoute><VerifyEmail /></ProtectedRoute>} />
         <Route path="/onboarding/child" element={<ProtectedRoute><OnboardingChildProfile /></ProtectedRoute>} />
         
