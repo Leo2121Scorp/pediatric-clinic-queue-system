@@ -150,16 +150,35 @@ export const loginWithIdentifier = async (identifier, password) => {
     throw { code: "auth/invalid-email" };
   }
 
-  // Always resolve via server so phone legacy formats (+63 / 09 / 9…) match RTDB
+  // If already an email, authenticate directly with Firebase Auth without hitting backend server
+  if (detected.type === "email") {
+    return loginUser(trimmed, password);
+  }
+
+  // If phone number, resolve phone -> account email via backend server
   const apiBase = (getPushApiBase() || "").replace(/\/$/, "");
-  const res = await fetch(`${apiBase}/api/auth/resolve-identifier`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ identifier: trimmed }),
-  });
-  const data = await res.json().catch(() => ({}));
+  let res;
+  try {
+    res = await fetch(`${apiBase}/api/auth/resolve-identifier`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ identifier: trimmed }),
+    });
+  } catch (_netErr) {
+    throw new Error("Unable to connect to the authentication server for phone login. Please log in with your email address.");
+  }
+
+  const contentType = res.headers.get("content-type") || "";
+  let data = {};
+  if (contentType.includes("application/json")) {
+    data = await res.json().catch(() => ({}));
+  }
+
   if (!res.ok || !data.email) {
-    const err = new Error(data.message || "No account was found with this email or phone number.");
+    if (res.status === 502 || res.status === 503 || res.status === 504 || (!contentType.includes("application/json") && res.ok)) {
+      throw new Error("Phone login server is currently offline. Please sign in using your email address.");
+    }
+    const err = new Error(data.message || "No account was found with this phone number.");
     err.code = data.error === "user_not_found" ? "auth/user-not-found" : (data.error || "auth/user-not-found");
     throw err;
   }
