@@ -24,12 +24,6 @@ export function mapAuthError(errorCode) {
       return 'Please verify your phone number before creating an account.';
     case 'phone_not_verified':
       return 'Please verify your phone number before creating an account.';
-    case 'auth/expired-action-code':
-      return 'This link has expired. Please request a new one.';
-    case 'auth/invalid-action-code':
-      return 'This link is invalid or was already used. Please request a new one.';
-    case 'auth/user-disabled':
-      return 'This account has been disabled. Please contact the clinic for help.';
     default:
       return 'Something went wrong. Please try again.';
   }
