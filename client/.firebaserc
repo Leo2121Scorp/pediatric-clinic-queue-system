@@ -11,6 +11,9 @@
         ]
       },
       "database": {
+        "main": [
+          "pediatric-clinic-queue-testing-default-rtdb"
+        ],
         "demo": [
           "pediatric-clinic-queue-testing-demo"
         ]
@@ -18,6 +21,9 @@
     },
     "pediatric-clinic-queue-system": {
       "database": {
+        "main": [
+          "pediatric-clinic-queue-system-default-rtdb"
+        ],
         "demo": [
           "pediatric-clinic-queue-system-demo"
         ]
