@@ -1,0 +1,117 @@
+<mxfile host="app.diagrams.net" agent="Cursor" version="24.0.0">
+  <diagram id="network-architecture" name="Network Architecture">
+    <mxGraphModel dx="1400" dy="820" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1300" pageHeight="820" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <!-- Title -->
+        <mxCell id="title" value="&lt;b&gt;Network Architecture Design — Pediatric Clinic Queue Management System&lt;/b&gt;" style="text;html=1;align=center;verticalAlign=middle;fontSize=16;" vertex="1" parent="1">
+          <mxGeometry x="300" y="10" width="700" height="30" as="geometry" />
+        </mxCell>
+
+        <!-- ============ ACTORS (left column) ============ -->
+        <mxCell id="parent_laptop" value="" style="image;html=1;image=img/lib/clip_art/computers/Laptop_128x128.png;imageAspect=0;" vertex="1" parent="1">
+          <mxGeometry x="40" y="60" width="90" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="parent_phone" value="" style="image;html=1;image=img/lib/clip_art/telecommunication/iPhone_128x128.png;imageAspect=0;" vertex="1" parent="1">
+          <mxGeometry x="140" y="62" width="45" height="68" as="geometry" />
+        </mxCell>
+        <mxCell id="parent_label" value="&lt;b&gt;Parent&lt;/b&gt;&lt;br&gt;Web App + Android App" style="text;html=1;align=center;verticalAlign=top;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="20" y="135" width="180" height="40" as="geometry" />
+        </mxCell>
+
+        <mxCell id="secretary" value="&lt;b&gt;Secretary&lt;/b&gt;&lt;br&gt;Web App" style="image;html=1;image=img/lib/clip_art/computers/Laptop_128x128.png;imageAspect=0;verticalLabelPosition=bottom;verticalAlign=top;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="55" y="300" width="90" height="70" as="geometry" />
+        </mxCell>
+
+        <mxCell id="doctor" value="&lt;b&gt;Doctor / Clinic Admin&lt;/b&gt;&lt;br&gt;Web App" style="image;html=1;image=img/lib/clip_art/computers/Laptop_128x128.png;imageAspect=0;verticalLabelPosition=bottom;verticalAlign=top;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="55" y="540" width="90" height="70" as="geometry" />
+        </mxCell>
+
+        <!-- ============ INTERNET ============ -->
+        <mxCell id="internet" value="&lt;b&gt;Internet&lt;/b&gt;&lt;br&gt;HTTPS" style="image;html=1;image=img/lib/clip_art/networking/Cloud_128x128.png;imageAspect=0;verticalLabelPosition=bottom;verticalAlign=top;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="300" y="290" width="150" height="100" as="geometry" />
+        </mxCell>
+
+        <!-- ============ APPLICATION LAYER (Firebase) ============ -->
+        <mxCell id="firebase_container" value="Firebase Platform (Google Cloud)" style="rounded=1;arcSize=4;dashed=1;html=1;fillColor=#FFF8E1;strokeColor=#F57C00;verticalAlign=top;fontStyle=1;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="500" y="150" width="300" height="440" as="geometry" />
+        </mxCell>
+
+        <mxCell id="hosting" value="&lt;b&gt;Firebase Hosting&lt;/b&gt;&lt;br&gt;React SPA (Vite) · APK download" style="shape=mxgraph.networks.web_server;html=1;outlineConnect=0;fillColor=#FFA000;strokeColor=#5C5C5C;gradientColor=none;verticalLabelPosition=bottom;verticalAlign=top;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="620" y="190" width="80" height="80" as="geometry" />
+        </mxCell>
+
+        <mxCell id="functions" value="&lt;b&gt;Cloud Functions&lt;/b&gt; (asia-southeast1)&lt;br&gt;Express API · RTDB triggers&lt;br&gt;Push &amp;amp; SMS dispatch" style="shape=mxgraph.networks.server;html=1;outlineConnect=0;fillColor=#039BE5;strokeColor=#5C5C5C;gradientColor=none;verticalLabelPosition=bottom;verticalAlign=top;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="620" y="400" width="80" height="80" as="geometry" />
+        </mxCell>
+
+        <!-- ============ SOURCE / DEPLOYMENT ============ -->
+        <mxCell id="git" value="&lt;b&gt;GitHub Repository&lt;/b&gt;&lt;br&gt;Source code (React, Functions, DB rules)" style="shape=mxgraph.azure.git_repository;html=1;outlineConnect=0;fillColor=#4495D1;strokeColor=none;verticalLabelPosition=bottom;verticalAlign=top;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="615" y="660" width="70" height="75" as="geometry" />
+        </mxCell>
+
+        <!-- ============ DATA / SERVICES LAYER (right column) ============ -->
+        <mxCell id="rtdb" value="&lt;b&gt;Firebase Realtime Database&lt;/b&gt;&lt;br&gt;Queue · Reservations · Users · Notifications" style="shape=cylinder3;html=1;boundedLbl=1;backgroundOutline=1;size=12;fillColor=#FFCA28;strokeColor=#F57C00;verticalLabelPosition=bottom;verticalAlign=top;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="1000" y="60" width="70" height="80" as="geometry" />
+        </mxCell>
+
+        <mxCell id="auth" value="&lt;b&gt;Firebase Authentication&lt;/b&gt;&lt;br&gt;Email / Phone login · Accounts" style="aspect=fixed;html=1;dashed=0;fillColor=#326CE5;strokeColor=#ffffff;shape=mxgraph.kubernetes.icon;prIcon=api;verticalLabelPosition=bottom;verticalAlign=top;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="995" y="240" width="80" height="78" as="geometry" />
+        </mxCell>
+
+        <mxCell id="textbee" value="&lt;b&gt;textbee.dev SMS Gateway&lt;/b&gt;&lt;br&gt;SMS OTP · Queue SMS alerts" style="aspect=fixed;html=1;dashed=0;fillColor=#326CE5;strokeColor=#ffffff;shape=mxgraph.kubernetes.icon;prIcon=c_m;verticalLabelPosition=bottom;verticalAlign=top;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="995" y="420" width="80" height="78" as="geometry" />
+        </mxCell>
+
+        <mxCell id="webpush" value="&lt;b&gt;Web Push Service (VAPID)&lt;/b&gt;&lt;br&gt;Browser / device push notifications" style="aspect=fixed;html=1;dashed=0;fillColor=#326CE5;strokeColor=#ffffff;shape=mxgraph.kubernetes.icon;prIcon=c_m;verticalLabelPosition=bottom;verticalAlign=top;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="995" y="600" width="80" height="78" as="geometry" />
+        </mxCell>
+
+        <!-- ============ EDGES: actors -> internet ============ -->
+        <mxCell id="e_parent" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=classic;endFill=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0.25;entryY=0.1;entryDx=0;entryDy=0;" edge="1" parent="1" source="parent_phone" target="internet">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_secretary" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=classic;endFill=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="secretary" target="internet">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_doctor" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=classic;endFill=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0.25;entryY=0.9;entryDx=0;entryDy=0;" edge="1" parent="1" source="doctor" target="internet">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- ============ EDGES: internet -> application ============ -->
+        <mxCell id="e_internet_hosting" style="rounded=0;html=1;endArrow=classic;endFill=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="internet" target="hosting">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_hosting_functions" value="/api/** rewrite" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=classic;endFill=1;exitX=0;exitY=0.75;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;labelBackgroundColor=#FFF8E1;fontSize=10;" edge="1" parent="1" source="hosting" target="functions">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="570" y="250" />
+              <mxPoint x="570" y="440" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- ============ EDGES: deployment ============ -->
+        <mxCell id="e_git_deploy" value="Manual deploy&lt;br&gt;(firebase deploy CLI)" style="rounded=0;html=1;endArrow=classic;endFill=1;strokeWidth=2;exitX=0.5;exitY=0;exitDx=0;exitDy=0;entryX=0.5;entryY=1;entryDx=0;entryDy=0;labelBackgroundColor=#ffffff;fontSize=10;" edge="1" parent="1" source="git" target="firebase_container">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- ============ EDGES: application -> services ============ -->
+        <mxCell id="e_fn_rtdb" style="rounded=0;html=1;endArrow=classic;endFill=1;startArrow=classic;startFill=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;entryPerimeter=0;" edge="1" parent="1" source="functions" target="rtdb">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_fn_auth" style="rounded=0;html=1;endArrow=classic;endFill=1;startArrow=classic;startFill=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="functions" target="auth">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_fn_textbee" style="rounded=0;html=1;endArrow=classic;endFill=1;startArrow=none;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="functions" target="textbee">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_fn_webpush" style="rounded=0;html=1;endArrow=classic;endFill=1;startArrow=none;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="functions" target="webpush">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
