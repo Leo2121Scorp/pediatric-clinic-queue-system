@@ -19,6 +19,7 @@ const { resolveAccountByIdentifier } = require("./phoneLookup");
 const { claimPasswordResetSlot } = require("./passwordResetLimitService");
 const { claimReservationSlot } = require("./claimReservationRuntime");
 const { notifyParentsScheduleAvailable } = require("./pushRuntime");
+const { defaultDatabase, getRtdb, runForToken } = require("./rtdbRouter");
 
 function mapOtpError(err) {
   const code = err.code || "internal";
@@ -112,7 +113,7 @@ function createApiApp() {
   app.post("/api/auth/resolve-identifier", async (req, res) => {
     try {
       const resolved = await resolveAccountByIdentifier(
-        admin.database(),
+        defaultDatabase(),
         req.body?.identifier
       );
       return res.json({
@@ -218,11 +219,13 @@ function createApiApp() {
     try {
       const decoded = await requireAuth(req, res);
       if (!decoded) return;
-      const result = await claimReservationSlot({
-        admin,
-        callerUid: decoded.uid,
-        payload: req.body,
-      });
+      const result = await runForToken(decoded, () =>
+        claimReservationSlot({
+          admin,
+          callerUid: decoded.uid,
+          payload: req.body,
+        })
+      );
       return res.json({ success: true, ...result });
     } catch (err) {
       const statusByCode = {
@@ -246,7 +249,8 @@ function createApiApp() {
     try {
       const decoded = await requireAuth(req, res);
       if (!decoded) return;
-      const roleSnap = await admin.database().ref(`users/${decoded.uid}/role`).once("value");
+      return await runForToken(decoded, async () => {
+      const roleSnap = await getRtdb().ref(`users/${decoded.uid}/role`).once("value");
       const role = roleSnap.exists() ? roleSnap.val() : null;
       if (!["doctor", "secretary", "admin"].includes(role)) {
         return res.status(403).json({
@@ -272,6 +276,7 @@ function createApiApp() {
         endDate: req.body?.endDate || null,
       });
       return res.json({ success: true, ...result });
+      });
     } catch (err) {
       console.error("[functions/api] schedules/notify-available:", err.message);
       return res.status(500).json({

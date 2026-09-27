@@ -1,5 +1,5 @@
 import { ref, get, update, query, orderByChild, equalTo, push, set } from "firebase/database";
-import { database } from "../firebase/database";
+import { getDb } from "../firebase/database";
 import { auth } from "../firebase/auth";
 import { manilaDateString } from "../utils/manilaDate";
 import {
@@ -16,7 +16,7 @@ import notificationService, { NOTIFICATION_EVENTS } from "./notificationService"
 
 async function loadParentReservations(parentId) {
   const snap = await get(
-    query(ref(database, "reservations"), orderByChild("parentId"), equalTo(parentId))
+    query(ref(getDb(), "reservations"), orderByChild("parentId"), equalTo(parentId))
   );
   if (!snap.exists()) return [];
   return Object.entries(snap.val()).map(([id, value]) => ({ id, ...value }));
@@ -27,7 +27,7 @@ async function loadSchedulesById(reservations) {
   const schedulesById = {};
   await Promise.all(
     ids.map(async (scheduleId) => {
-      const snap = await get(ref(database, `schedules/${scheduleId}`));
+      const snap = await get(ref(getDb(), `schedules/${scheduleId}`));
       if (snap.exists()) schedulesById[scheduleId] = snap.val();
     })
   );
@@ -54,13 +54,13 @@ export async function dismissSuspiciousAccount(parentId, { auditLogId = null } =
   if (!auth.currentUser) throw new Error("Authentication required.");
   if (!parentId) throw new Error("Parent id is required.");
 
-  const userSnap = await get(ref(database, `users/${parentId}`));
+  const userSnap = await get(ref(getDb(), `users/${parentId}`));
   if (!userSnap.exists()) throw new Error("User not found.");
   const parent = userSnap.val();
   if (parent.role !== "parent") throw new Error("Only parent accounts can be marked reviewed.");
 
   const now = Date.now();
-  await update(ref(database, `users/${parentId}`), {
+  await update(ref(getDb(), `users/${parentId}`), {
     suspiciousFlag: {
       ...(parent.suspiciousFlag || {}),
       isSuspicious: false,
@@ -73,7 +73,7 @@ export async function dismissSuspiciousAccount(parentId, { auditLogId = null } =
   });
 
   if (auditLogId) {
-    await update(ref(database, `auditLogs/${auditLogId}`), {
+    await update(ref(getDb(), `auditLogs/${auditLogId}`), {
       reviewStatus: SUSPICIOUS_FLAG_STATUS.DISMISSED,
       reviewedAt: now,
       reviewedBy: auth.currentUser.uid,
@@ -103,7 +103,7 @@ export async function deactivateSuspiciousAccount(parentId, { auditLogId = null 
   if (!auth.currentUser) throw new Error("Authentication required.");
   if (!parentId) throw new Error("Parent id is required.");
 
-  const userSnap = await get(ref(database, `users/${parentId}`));
+  const userSnap = await get(ref(getDb(), `users/${parentId}`));
   if (!userSnap.exists()) throw new Error("User not found.");
   const parent = userSnap.val();
   if (parent.role !== "parent") throw new Error("Only parent accounts can be deactivated here.");
@@ -114,7 +114,7 @@ export async function deactivateSuspiciousAccount(parentId, { auditLogId = null 
   }
 
   const now = Date.now();
-  await update(ref(database, `users/${parentId}`), {
+  await update(ref(getDb(), `users/${parentId}`), {
     suspiciousFlag: {
       ...(parent.suspiciousFlag || {}),
       isSuspicious: true,
@@ -127,7 +127,7 @@ export async function deactivateSuspiciousAccount(parentId, { auditLogId = null 
   });
 
   if (auditLogId) {
-    await update(ref(database, `auditLogs/${auditLogId}`), {
+    await update(ref(getDb(), `auditLogs/${auditLogId}`), {
       reviewStatus: SUSPICIOUS_FLAG_STATUS.DEACTIVATED,
       reviewedAt: now,
       reviewedBy: auth.currentUser.uid,
@@ -144,7 +144,7 @@ export async function deactivateSuspiciousAccount(parentId, { auditLogId = null 
 export async function flagSuspiciousAccountIfNeeded(parentId, options = {}) {
   if (!parentId) return { flagged: false, reason: "missing_parent" };
 
-  const userSnap = await get(ref(database, `users/${parentId}`));
+  const userSnap = await get(ref(getDb(), `users/${parentId}`));
   if (!userSnap.exists()) return { flagged: false, reason: "user_not_found" };
   const parent = userSnap.val();
   if (parent.role !== "parent" || parent.isDeleted) {
@@ -177,7 +177,7 @@ export async function flagSuspiciousAccountIfNeeded(parentId, options = {}) {
     reviewedBy: null,
   };
 
-  await update(ref(database, `users/${parentId}`), {
+  await update(ref(getDb(), `users/${parentId}`), {
     suspiciousFlag: flagPayload,
     updatedAt: now,
   });
@@ -220,7 +220,7 @@ export async function flagSuspiciousAccountIfNeeded(parentId, options = {}) {
  */
 export async function markDoctorAlertRead(doctorId, alertId) {
   if (!doctorId || !alertId) return;
-  await update(ref(database, `doctorAlerts/${doctorId}/${alertId}`), {
+  await update(ref(getDb(), `doctorAlerts/${doctorId}/${alertId}`), {
     read: true,
     readAt: Date.now(),
   });
@@ -228,7 +228,7 @@ export async function markDoctorAlertRead(doctorId, alertId) {
 
 export async function subscribeDoctorAlerts(doctorId, callback) {
   const { subscribeOnValue } = await import("../firebase/rtdbSubscribe");
-  const alertsRef = ref(database, `doctorAlerts/${doctorId}`);
+  const alertsRef = ref(getDb(), `doctorAlerts/${doctorId}`);
   return subscribeOnValue(alertsRef, (snap) => {
     if (!snap.exists()) {
       callback([]);
@@ -243,7 +243,7 @@ export async function subscribeDoctorAlerts(doctorId, callback) {
 /** @deprecated Prefer Cloud Function; kept for local scripts. */
 export async function writeDoctorAlert(doctorId, alert) {
   if (!doctorId) return null;
-  const alertsRef = ref(database, `doctorAlerts/${doctorId}`);
+  const alertsRef = ref(getDb(), `doctorAlerts/${doctorId}`);
   const newRef = push(alertsRef);
   await set(newRef, {
     ...alert,

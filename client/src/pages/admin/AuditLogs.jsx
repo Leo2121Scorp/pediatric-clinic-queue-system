@@ -15,7 +15,7 @@ import {
   X,
 } from "lucide-react";
 import { ref, query, limitToLast } from "firebase/database";
-import { database } from "../../firebase/database";
+import { getDb } from "../../firebase/database";
 import { subscribeOnValue } from "../../firebase/rtdbSubscribe";
 import { AUDIT_CATEGORIES, AUDIT_ACTIONS } from "../../services/auditService";
 import {
@@ -282,7 +282,7 @@ export default function AuditLogs() {
 
   useEffect(() => {
     if (redirectToOverview) return undefined;
-    const auditRef = ref(database, "auditLogs");
+    const auditRef = ref(getDb(), "auditLogs");
     const q = query(auditRef, limitToLast(logLimit));
 
     const unsubscribe = subscribeOnValue(q, (snapshot) => {

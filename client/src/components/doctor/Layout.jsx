@@ -5,6 +5,7 @@ import { PqBrand } from "../parent/pqUi";
 import { goBackOr } from "../../utils/navigationRoots";
 import AddStaffModal from "../admin/AddStaffModal";
 import LogoutButton from "../common/LogoutButton";
+import DemoResetBar from "./DemoResetBar";
 
 export default function Layout() {
   const location = useLocation();
@@ -176,6 +177,7 @@ export default function Layout() {
         </div>
 
         <div className="p-4 sm:p-6 md:p-8 lg:p-10 max-w-5xl mx-auto w-full flex-1 min-w-0">
+          <DemoResetBar />
           <Outlet context={{ setHeaderOverride }} />
         </div>
 

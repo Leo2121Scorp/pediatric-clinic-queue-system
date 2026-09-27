@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { NavLink } from "react-router-dom";
 import { CalendarDays, MapPin, Users, User, Activity, Clock } from "lucide-react";
 import { ref, query, limitToLast } from "firebase/database";
-import { database } from "../../firebase/database";
+import { getDb } from "../../firebase/database";
 import { subscribeOnValue } from "../../firebase/rtdbSubscribe";
 import { PqSpinner } from "../../components/parent/pqUi";
 import { manilaDateString } from "../../utils/manilaDate";
@@ -126,9 +126,9 @@ export default function Dashboard() {
   const [activityError, setActivityError] = useState(null);
 
   useEffect(() => {
-    const usersRef = ref(database, "users");
-    const schedulesRef = ref(database, "schedules");
-    const branchesRef = ref(database, "branchConfigurations");
+    const usersRef = ref(getDb(), "users");
+    const schedulesRef = ref(getDb(), "schedules");
+    const branchesRef = ref(getDb(), "branchConfigurations");
 
     let usersData = {};
     let schedulesData = {};
@@ -209,7 +209,7 @@ export default function Dashboard() {
   }, []);
 
   useEffect(() => {
-    const auditRef = query(ref(database, "auditLogs"), limitToLast(PREVIEW_LOG_COUNT));
+    const auditRef = query(ref(getDb(), "auditLogs"), limitToLast(PREVIEW_LOG_COUNT));
     const unsubscribe = subscribeOnValue(auditRef, (snapshot) => {
       if (snapshot.exists()) {
         const data = snapshot.val();

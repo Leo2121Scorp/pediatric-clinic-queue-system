@@ -1,5 +1,5 @@
 import { ref, push, set } from "firebase/database";
-import { database } from "../firebase/database";
+import { getDb } from "../firebase/database";
 import { auth } from "../firebase/auth";
 
 export const AUDIT_CATEGORIES = {
@@ -95,7 +95,7 @@ export const logAuditEvent = async ({
     if (!finalRole) {
       try {
         const { get } = await import("firebase/database");
-        const roleSnapshot = await get(ref(database, `users/${currentUser.uid}/role`));
+        const roleSnapshot = await get(ref(getDb(), `users/${currentUser.uid}/role`));
         finalRole = roleSnapshot.val() || "unknown";
       } catch (err) {
         console.warn("Audit Service: Could not fetch actor role.", err);
@@ -103,7 +103,7 @@ export const logAuditEvent = async ({
       }
     }
 
-    const auditRef = ref(database, 'auditLogs');
+    const auditRef = ref(getDb(), 'auditLogs');
     const newLogRef = push(auditRef);
 
     const logEntry = {

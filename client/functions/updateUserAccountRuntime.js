@@ -1,3 +1,5 @@
+const { databaseFor } = require("./rtdbRouter");
+
 function makeError(message, status, code) {
   const err = new Error(message);
   err.status = status;
@@ -22,7 +24,7 @@ async function updateUserAccount({ admin, callerUid, targetUid, updates }) {
     throw makeError("Update payload is required.", 400, "invalid-argument");
   }
 
-  const db = admin.database();
+  const db = databaseFor(admin);
   const callerSnap = await db.ref(`users/${callerUid}`).once("value");
   const caller = callerSnap.exists() ? callerSnap.val() : null;
   const callerAllowed =

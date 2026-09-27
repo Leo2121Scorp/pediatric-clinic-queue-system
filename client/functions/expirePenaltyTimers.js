@@ -1,11 +1,12 @@
-const admin = require("firebase-admin");
 const { recalculateEntireQueueAdmin, canExpirePenaltyTimer } = require("./queueRuntime");
 
 const PENALTY_TIMER_FORFEIT_REASON =
   "Did not check in before the late penalty timer expired.";
 
+const { getRtdb } = require("./rtdbRouter");
+
 function db() {
-  return admin.database();
+  return getRtdb();
 }
 
 function applyForfeitFields(current, now) {

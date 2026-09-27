@@ -1,12 +1,12 @@
-const admin = require("firebase-admin");
-
 const DAILY_LIMIT = 5;
 const TIME_ZONE = "Asia/Manila";
 const LIMIT_MESSAGE =
   "You've reached today's password reset limit. Please try again tomorrow.";
 
+const { getRtdb } = require("./rtdbRouter");
+
 function getDb() {
-  return admin.database();
+  return getRtdb();
 }
 
 function normalizeEmail(email) {

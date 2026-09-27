@@ -1,3 +1,5 @@
+const { databaseFor } = require("./rtdbRouter");
+
 const ACTIVE_RESERVATION_STATUSES = [
   "reserved",
   "checked_in",
@@ -98,7 +100,7 @@ async function deleteUserAccount({ admin, callerUid, targetUid }) {
     throw makeError("You cannot delete your own account.", 400, "failed-precondition");
   }
 
-  const db = admin.database();
+  const db = databaseFor(admin);
   const callerSnap = await db.ref(`users/${callerUid}`).once("value");
   const caller = callerSnap.exists() ? callerSnap.val() : null;
   const callerCanDelete =

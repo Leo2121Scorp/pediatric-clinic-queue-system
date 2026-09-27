@@ -3,7 +3,7 @@ import { getAuth, createUserWithEmailAndPassword, updateProfile, signOut } from 
 import { getFunctions, httpsCallable } from "firebase/functions";
 import { ref, set, get } from "firebase/database";
 import app, { firebaseConfig } from "../firebase/firebaseConfig";
-import { database } from "../firebase/database";
+import { getDb } from "../firebase/database";
 import { auth } from "../firebase/auth";
 import { logAuditEvent, AUDIT_ACTIONS, AUDIT_CATEGORIES } from "./auditService";
 import { sendPasswordResetLink } from "./passwordResetService";
@@ -16,12 +16,12 @@ const PROFILE_UPDATE_ALLOWLIST = ["name", "phone", "assignedBranch", "assignedBr
 
 async function getCallerRole() {
   if (!auth.currentUser) return null;
-  const snap = await get(ref(database, `users/${auth.currentUser.uid}/role`));
+  const snap = await get(ref(getDb(), `users/${auth.currentUser.uid}/role`));
   return snap.exists() ? snap.val() : null;
 }
 
 export const getActiveDoctor = async () => {
-  const snapshot = await get(ref(database, "users"));
+  const snapshot = await get(ref(getDb(), "users"));
   if (!snapshot.exists()) return null;
   const users = Object.values(snapshot.val());
   return users.find(u => u.role === "doctor" && u.status === "active");
@@ -88,7 +88,14 @@ export const createStaffAccount = async (staffData) => {
       dbPayload.assignedBranchId = staffData.assignedBranchId;
     }
 
-    await set(ref(database, `users/${user.uid}`), dbPayload);
+    await set(ref(getDb(), `users/${user.uid}`), dbPayload);
+
+    const callerToken = await auth.currentUser?.getIdTokenResult();
+    if (callerToken?.claims?.isDemo === true) {
+      const functions = getFunctions(app, "asia-southeast1");
+      const stampDemoClaim = httpsCallable(functions, "stampDemoClaim");
+      await stampDemoClaim({ uid: user.uid });
+    }
 
     // Sign out from the secondary app instance
     await signOut(secondaryAuth);
@@ -130,7 +137,7 @@ export const updateUser = async (uid, updates) => {
     throw new Error("No allowed profile fields to update.");
   }
 
-  const targetSnap = await get(ref(database, `users/${uid}`));
+  const targetSnap = await get(ref(getDb(), `users/${uid}`));
   const target = targetSnap.exists() ? targetSnap.val() : null;
   const callerRole = await getCallerRole();
 
@@ -200,7 +207,7 @@ export const updateUser = async (uid, updates) => {
     if (!callableOk) {
       // Local fallback for staff edits when Admin SDK / Functions are unavailable.
       const { update } = await import("firebase/database");
-      await update(ref(database, `users/${uid}`), {
+      await update(ref(getDb(), `users/${uid}`), {
         ...sanitized,
         updatedAt: Date.now(),
       });
@@ -222,7 +229,7 @@ export const toggleUserStatus = async (uid, currentStatus) => {
     throw new Error("You cannot deactivate or reactivate your own account.");
   }
 
-  const targetSnap = await get(ref(database, `users/${uid}`));
+  const targetSnap = await get(ref(getDb(), `users/${uid}`));
   const target = targetSnap.exists() ? targetSnap.val() : null;
   if (target?.role === "doctor") {
     throw new Error(
@@ -233,7 +240,7 @@ export const toggleUserStatus = async (uid, currentStatus) => {
   const newStatus = currentStatus === "active" ? "inactive" : "active";
   const targetLabel = target?.name ? ` for ${target.name}` : "";
 
-  const userRef = ref(database, `users/${uid}`);
+  const userRef = ref(getDb(), `users/${uid}`);
   const { update } = await import("firebase/database");
   await update(userRef, {
     status: newStatus,
@@ -280,7 +287,7 @@ export const resetSecretaryPasswordDirect = async (uid) => {
     throw new Error("You cannot reset your own password through this action.");
   }
 
-  const targetSnap = await get(ref(database, `users/${uid}`));
+  const targetSnap = await get(ref(getDb(), `users/${uid}`));
   const target = targetSnap.exists() ? targetSnap.val() : null;
   if (target?.role !== "secretary") {
     const err = new Error("Direct password reset is only allowed for secretary accounts.");
@@ -368,7 +375,7 @@ export const deleteUserAccount = async (uid) => {
     throw new Error("You cannot delete your own account.");
   }
 
-  const snapshot = await get(ref(database, `users/${uid}`));
+  const snapshot = await get(ref(getDb(), `users/${uid}`));
   const target = snapshot.exists() ? snapshot.val() : null;
   if (target?.role === "admin") {
     throw new Error("Admin accounts cannot be deleted.");

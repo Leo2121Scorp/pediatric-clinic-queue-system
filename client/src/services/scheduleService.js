@@ -1,4 +1,4 @@
-import { database } from "../firebase/database";
+import { getDb } from "../firebase/database";
 import { ref, push, set, get, update, remove, serverTimestamp, query, orderByChild, equalTo } from "firebase/database";
 import { subscribeOnValue } from "../firebase/rtdbSubscribe";
 import { getReservationsBySchedule } from "./reservationService";
@@ -18,7 +18,7 @@ export const createSchedule = async ( scheduleData ) => {
     throw new Error(timeValidation.message);
   }
 
-  const scheduleRef = push(ref(database, "schedules"));
+  const scheduleRef = push(ref(getDb(), "schedules"));
   const payload = { ...scheduleData };
   delete payload.lateLimit;
 
@@ -29,7 +29,7 @@ export const createSchedule = async ( scheduleData ) => {
 
 export const getSchedules = async () => {
   const snapshot = await get(
-    ref(database, "schedules")
+    ref(getDb(), "schedules")
   );
 
   if (snapshot.exists()) {
@@ -40,7 +40,7 @@ export const getSchedules = async () => {
 };
 
 export const getScheduleById = async (scheduleId) => {
-  const snapshot = await get(ref(database, `schedules/${scheduleId}`));
+  const snapshot = await get(ref(getDb(), `schedules/${scheduleId}`));
   if (snapshot.exists()) {
     return { id: snapshot.key, ...snapshot.val() };
   }
@@ -48,7 +48,7 @@ export const getScheduleById = async (scheduleId) => {
 };
 
 export const scheduleExists = async ( branch, clinicDate ) => {
-  const snapshot = await get( ref(database, "schedules") );
+  const snapshot = await get( ref(getDb(), "schedules") );
 
   if (!snapshot.exists()) { return false; }
 
@@ -59,7 +59,7 @@ export const scheduleExists = async ( branch, clinicDate ) => {
 
 // check closing time before updating draft schedule or publishing
 export const updateSchedule = async ( scheduleId, updatedData ) => {
-  const snapshot = await get(ref(database, `schedules/${scheduleId}`));
+  const snapshot = await get(ref(getDb(), `schedules/${scheduleId}`));
   if (snapshot.exists()) {
     const currentSchedule = snapshot.val();
     if (currentSchedule.status === "published") {
@@ -77,11 +77,11 @@ export const updateSchedule = async ( scheduleId, updatedData ) => {
   }
   const payload = { ...updatedData };
   delete payload.lateLimit;
-  await update(ref(database,`schedules/${scheduleId}`), payload);
+  await update(ref(getDb(),`schedules/${scheduleId}`), payload);
 };
 
 export const deleteSchedule = async (scheduleId) => {
-  const snapshot = await get(ref(database, `schedules/${scheduleId}`));
+  const snapshot = await get(ref(getDb(), `schedules/${scheduleId}`));
   if (snapshot.exists()) {
     const schedule = snapshot.val();
     if (schedule.dayClosed) {
@@ -94,12 +94,12 @@ export const deleteSchedule = async (scheduleId) => {
       }
     }
   }
-  await remove(ref(database, `schedules/${scheduleId}`));
+  await remove(ref(getDb(), `schedules/${scheduleId}`));
 };
 
 export const publishSchedule = async (scheduleId, options = {}) => {
   let currentSchedule = null;
-  const snapshot = await get(ref(database, `schedules/${scheduleId}`));
+  const snapshot = await get(ref(getDb(), `schedules/${scheduleId}`));
   if (snapshot.exists()) {
     currentSchedule = snapshot.val();
     const timeValidation = await validateScheduleClosingTime(currentSchedule.branch, currentSchedule.clinicDate);
@@ -107,7 +107,7 @@ export const publishSchedule = async (scheduleId, options = {}) => {
       throw new Error(timeValidation.message);
     }
   }
-  await update( ref(database, `schedules/${scheduleId}`), {
+  await update( ref(getDb(), `schedules/${scheduleId}`), {
     status: "published", 
     queueStatus: "not_started", // Default queue status when published
     queueStartedAt: null,
@@ -128,7 +128,7 @@ export const publishSchedule = async (scheduleId, options = {}) => {
 };
 
 export const moveToReady = async ( scheduleId ) => {
-  await update( ref(database, `schedules/${scheduleId}`), {
+  await update( ref(getDb(), `schedules/${scheduleId}`), {
     isReady: true,
     movedToReadyAt: Date.now(),
   });
@@ -140,7 +140,7 @@ export const updateQueueStatus = async (scheduleId, queueStatus) => {
     [`queueStatusUpdatedAt`]: Date.now()
   };
   
-  const snap = await get(ref(database, `schedules/${scheduleId}`));
+  const snap = await get(ref(getDb(), `schedules/${scheduleId}`));
   let isFirstStart = false;
   let scheduleData = null;
 
@@ -157,7 +157,7 @@ export const updateQueueStatus = async (scheduleId, queueStatus) => {
     throw new Error("Schedule not found.");
   }
 
-  await update(ref(database, `schedules/${scheduleId}`), updates);
+  await update(ref(getDb(), `schedules/${scheduleId}`), updates);
 
   if (queueStatus === "active") {
     await recalculateRollingValidation(scheduleId);
@@ -200,7 +200,7 @@ export const updateQueueStatus = async (scheduleId, queueStatus) => {
 
 export const completeSchedule = async ( scheduleId ) => {
   const now = Date.now();
-  await update( ref(database, `schedules/${scheduleId}`), {
+  await update( ref(getDb(), `schedules/${scheduleId}`), {
     status: "completed", 
     queueStatus: "completed",
     completedAt: now,
@@ -218,11 +218,11 @@ export const completeSchedule = async ( scheduleId ) => {
   });
 
   if (Object.keys(updates).length > 0) {
-    await update(ref(database), updates);
+    await update(ref(getDb()), updates);
   }
 
   // Audit Log
-  const snap = await get(ref(database, `schedules/${scheduleId}`));
+  const snap = await get(ref(getDb(), `schedules/${scheduleId}`));
   const branch = snap.exists() ? snap.val().branch : null;
 
   logAuditEvent({
@@ -238,7 +238,7 @@ export const completeSchedule = async ( scheduleId ) => {
 export const subscribeToPublishedSchedules = ( callback ) => {
   if (typeof callback !== "function") return () => {};
   const q = query(
-    ref(database, "schedules"),
+    ref(getDb(), "schedules"),
     orderByChild("status"),
     equalTo("published")
   );
@@ -258,7 +258,7 @@ export const subscribeToPublishedSchedules = ( callback ) => {
 
 export const subscribeToAllSchedules = (callback) => {
   if (typeof callback !== "function") return () => {};
-  const schedulesRef = ref(database, "schedules");
+  const schedulesRef = ref(getDb(), "schedules");
   return subscribeOnValue(schedulesRef, (snapshot) => {
     if (!snapshot.exists()) {
       callback({});

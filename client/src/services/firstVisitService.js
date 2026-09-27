@@ -29,8 +29,8 @@ function removeSession(key) {
 export async function persistTourComplete(uid) {
   if (!uid) return;
   const { ref, update } = await import("firebase/database");
-  const { database } = await import("../firebase/database");
-  await update(ref(database, `users/${uid}`), {
+  const { getDb } = await import("../firebase/database");
+  await update(ref(getDb(), `users/${uid}`), {
     hasCompletedTour: true,
     updatedAt: Date.now(),
   });

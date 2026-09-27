@@ -1,10 +1,10 @@
-import { database } from "../firebase/database";
+import { getDb } from "../firebase/database";
 import { ref, push, set, update, remove } from "firebase/database";
 import { subscribeOnValue } from "../firebase/rtdbSubscribe";
 import { formatName } from "../utils/stringUtils";
 
-const childrenRef = (uid) => ref(database, `users/${uid}/children`);
-const childRef = (uid, childId) => ref(database, `users/${uid}/children/${childId}`);
+const childrenRef = (uid) => ref(getDb(), `users/${uid}/children`);
+const childRef = (uid, childId) => ref(getDb(), `users/${uid}/children/${childId}`);
 
 const toChildList = (raw) => {
   if (!raw) return [];

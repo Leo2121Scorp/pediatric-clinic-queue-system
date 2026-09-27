@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { database } from '../firebase/database';
+import { getDb } from '../firebase/database';
 import { ref, get } from 'firebase/database';
 
 export const useAdminReportsData = () => {
@@ -19,9 +19,9 @@ export const useAdminReportsData = () => {
       try {
         setLoading(true);
         const [usersSnap, schedulesSnap, reservationsSnap] = await Promise.all([
-          get(ref(database, "users")),
-          get(ref(database, "schedules")),
-          get(ref(database, "reservations"))
+          get(ref(getDb(), "users")),
+          get(ref(getDb(), "schedules")),
+          get(ref(getDb(), "reservations"))
         ]);
 
         let rawUsers = [];

@@ -331,16 +331,35 @@ export default function ReserveQueue() {
   };
 
   const handleSubmitPatientInfo = async () => {
-    if (!activeReservationId || submittingRef.current) return;
+    // #region agent log
+    fetch('http://127.0.0.1:7708/ingest/a0da62a0-b5bc-4cd3-91aa-e6028c550e99',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'98046d'},body:JSON.stringify({sessionId:'98046d',runId:'post-fix',hypothesisId:'A',location:'ReserveQueue.jsx:handleSubmitPatientInfo',message:'save clicked',data:{hasReservationId:Boolean(activeReservationId),submitting:Boolean(submittingRef.current),selectedCount:selectedChildIds.length},timestamp:Date.now()})}).catch(()=>{});
+    // #endregion
+    if (!activeReservationId || submittingRef.current) {
+      if (!activeReservationId) {
+        setMessageModalState({
+          isOpen: true,
+          type: "error",
+          title: "Reservation Not Saved",
+          message: "This slot was not saved on the clinic server. Close this screen and reserve again."
+        });
+      }
+      return;
+    }
     const selected = savedChildren.filter((child) => selectedChildIds.includes(child.id));
     if (selected.length === 0) return;
     submittingRef.current = true;
     setIsSubmitting(true);
     try {
       await updatePatientInfo(activeReservationId, buildPatientInfoPayload(selected, concern));
+      // #region agent log
+      fetch('http://127.0.0.1:7708/ingest/a0da62a0-b5bc-4cd3-91aa-e6028c550e99',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'98046d'},body:JSON.stringify({sessionId:'98046d',runId:'post-fix',hypothesisId:'C',location:'ReserveQueue.jsx:handleSubmitPatientInfo',message:'patient info saved',data:{selectedCount:selected.length},timestamp:Date.now()})}).catch(()=>{});
+      // #endregion
       setIsPatientInfoModalOpen(false);
       setIsSuccessModalOpen(true);
     } catch (err) {
+      // #region agent log
+      fetch('http://127.0.0.1:7708/ingest/a0da62a0-b5bc-4cd3-91aa-e6028c550e99',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'98046d'},body:JSON.stringify({sessionId:'98046d',runId:'post-fix',hypothesisId:'C',location:'ReserveQueue.jsx:handleSubmitPatientInfo',message:'patient info save failed',data:{error:String(err&&err.message||err).slice(0,180)},timestamp:Date.now()})}).catch(()=>{});
+      // #endregion
       console.error(err);
       setMessageModalState({
         isOpen: true,

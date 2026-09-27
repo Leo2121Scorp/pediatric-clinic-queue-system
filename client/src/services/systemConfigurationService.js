@@ -1,4 +1,4 @@
-import { database } from "../firebase/database";
+import { getDb } from "../firebase/database";
 import { ref, get, onValue, update } from "firebase/database";
 import { logAuditEvent, AUDIT_ACTIONS, AUDIT_CATEGORIES } from "./auditService";
 import { branchesMatch } from "../utils/stringUtils";
@@ -389,7 +389,7 @@ const isBranchConfigSeeded = (data) =>
 
 const readLegacyNode = async (path) => {
   try {
-    const snap = await get(ref(database, path));
+    const snap = await get(ref(getDb(), path));
     return snap.exists() ? snap.val() : null;
   } catch (error) {
     if (!isPermissionDenied(error)) {
@@ -409,7 +409,7 @@ const readLegacyGlobal = async () => {
 
 const readBranchSmsOnly = async (branchId) => {
   try {
-    const snap = await get(ref(database, `${branchConfigPath(branchId)}/sms`));
+    const snap = await get(ref(getDb(), `${branchConfigPath(branchId)}/sms`));
     return parseBranchConfig({ sms: snap.exists() ? snap.val() : null });
   } catch (error) {
     if (!isPermissionDenied(error)) {
@@ -422,7 +422,7 @@ const readBranchSmsOnly = async (branchId) => {
 const lookupBranchIdByName = async (name) => {
   if (!name) return null;
   try {
-    const snap = await get(ref(database, "branchConfigurations"));
+    const snap = await get(ref(getDb(), "branchConfigurations"));
     if (!snap.exists()) return null;
     const match = Object.entries(snap.val()).find(
       ([id, value]) => id === name || branchesMatch(value?.name, name)
@@ -441,7 +441,7 @@ export const resolveScheduleBranchId = async (schedule) => {
   if (!schedule) return null;
   if (isUsableBranchId(schedule.branchId)) {
     try {
-      const snap = await get(ref(database, `branchConfigurations/${schedule.branchId}`));
+      const snap = await get(ref(getDb(), `branchConfigurations/${schedule.branchId}`));
       if (snap.exists()) return schedule.branchId;
     } catch (error) {
       console.warn("Could not verify schedule.branchId:", error);
@@ -461,7 +461,7 @@ export const ensureBranchSystemConfiguration = async (branchId) => {
   const path = branchConfigPath(branchId);
   let existing = null;
   try {
-    const snap = await get(ref(database, path));
+    const snap = await get(ref(getDb(), path));
     existing = snap.exists() ? snap.val() : null;
   } catch (error) {
     if (isPermissionDenied(error)) {
@@ -485,7 +485,7 @@ export const ensureBranchSystemConfiguration = async (branchId) => {
   });
 
   try {
-    await update(ref(database, path), {
+    await update(ref(getDb(), path), {
       penaltyMoveBack: parsed.penaltyMoveBack,
       penaltyTimerMinutes: parsed.penaltyTimerMinutes,
       penaltyGraceMinutes: parsed.penaltyGraceMinutes,
@@ -553,7 +553,7 @@ export const subscribeToQueueRulesForSchedule = (schedule, onRules, onError) => 
       }
 
       unsub = onValue(
-        ref(database, branchConfigPath(branchId)),
+        ref(getDb(), branchConfigPath(branchId)),
         (snapshot) => {
           onRules(parseQueueConfig(snapshot.exists() ? snapshot.val() : null));
         },
@@ -594,7 +594,7 @@ export const subscribeToQueueConfiguration = (branchId, callback) => {
   ensureBranchSystemConfiguration(branchId).catch(() => {});
 
   return subscribeOnValue(
-    ref(database, branchConfigPath(branchId)),
+    ref(getDb(), branchConfigPath(branchId)),
     (snapshot) => {
       callback(parseQueueConfig(snapshot.val()));
     },
@@ -627,7 +627,7 @@ export const updatePenaltyMoveBack = async (branchId, newValue) => {
     return;
   }
 
-  await update(ref(database, branchConfigPath(branchId)), {
+  await update(ref(getDb(), branchConfigPath(branchId)), {
     penaltyMoveBack: newSafeValue,
     updatedAt: Date.now(),
   });
@@ -661,7 +661,7 @@ export const updatePenaltyTimerMinutes = async (branchId, newValue) => {
     return;
   }
 
-  await update(ref(database, branchConfigPath(branchId)), {
+  await update(ref(getDb(), branchConfigPath(branchId)), {
     penaltyTimerMinutes: newSafeValue,
     updatedAt: Date.now(),
   });
@@ -695,7 +695,7 @@ export const updatePenaltyGraceMinutes = async (branchId, newValue) => {
     return;
   }
 
-  await update(ref(database, branchConfigPath(branchId)), {
+  await update(ref(getDb(), branchConfigPath(branchId)), {
     penaltyGraceMinutes: newSafeValue,
     updatedAt: Date.now(),
   });
@@ -729,7 +729,7 @@ export const subscribeToSmsConfiguration = (branchId, callback) => {
   }
 
   return subscribeOnValue(
-    ref(database, `${branchConfigPath(branchId)}/sms`),
+    ref(getDb(), `${branchConfigPath(branchId)}/sms`),
     (snapshot) => {
       callback(parseSmsConfig(snapshot.val()));
     },
@@ -776,8 +776,8 @@ export const updateSmsConfiguration = async (branchId, input) => {
     updatedAt: Date.now(),
   };
 
-  await update(ref(database, `${branchConfigPath(branchId)}/sms`), payload);
-  await update(ref(database, branchConfigPath(branchId)), { updatedAt: Date.now() });
+  await update(ref(getDb(), `${branchConfigPath(branchId)}/sms`), payload);
+  await update(ref(getDb(), branchConfigPath(branchId)), { updatedAt: Date.now() });
 
   const changes = [];
   if (current.nearingTurnAheadCount !== next.nearingTurnAheadCount) {
@@ -825,7 +825,7 @@ export const updateSmsConfiguration = async (branchId, input) => {
 export const getDefaultSlotCapacity = async (branchId) => {
   if (!isUsableBranchId(branchId)) return DEFAULT_SLOT_CAPACITY;
   try {
-    const snap = await get(ref(database, `${branchConfigPath(branchId)}/defaultSlotCapacity`));
+    const snap = await get(ref(getDb(), `${branchConfigPath(branchId)}/defaultSlotCapacity`));
     const parsed = validateSlotCapacity(snap.val());
     return parsed.valid ? parsed.value : DEFAULT_SLOT_CAPACITY;
   } catch (error) {
@@ -845,7 +845,7 @@ export const updateDefaultSlotCapacity = async (branchId, newValue) => {
   await ensureBranchSystemConfiguration(branchId);
   const current = await getDefaultSlotCapacity(branchId);
   if (current === validation.value) return validation.value;
-  await update(ref(database, branchConfigPath(branchId)), {
+  await update(ref(getDb(), branchConfigPath(branchId)), {
     defaultSlotCapacity: validation.value,
     updatedAt: Date.now(),
   });

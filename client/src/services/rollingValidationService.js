@@ -1,6 +1,3 @@
-import { database } from "../firebase/database";
-import { ref, get, update, serverTimestamp } from "firebase/database";
-
 // Deprecated: Rolling validation windows have been removed in the refactored workflow.
 // Functions preserved as safe pass-throughs for backwards compatibility.
 

@@ -51,8 +51,10 @@ export default function Login() {
 
   const finishLogin = async (authUser) => {
     const { ref, get } = await import("firebase/database");
-    const { database } = await import("../../firebase/database");
-    const userRef = ref(database, `users/${authUser.uid}`);
+    const { getDb, setActiveDatabase } = await import("../../firebase/database");
+    const tokenResult = await authUser.getIdTokenResult(true);
+    setActiveDatabase(tokenResult?.claims?.isDemo === true);
+    const userRef = ref(getDb(), `users/${authUser.uid}`);
     const snapshot = await get(userRef);
 
     if (snapshot.exists()) {

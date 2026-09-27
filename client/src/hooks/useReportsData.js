@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { database } from '../firebase/database';
+import { getDb } from '../firebase/database';
 import { ref, get } from 'firebase/database';
 import { branchesMatch } from '../utils/stringUtils';
 import { manilaDateString } from '../utils/manilaDate';
@@ -34,8 +34,8 @@ export const useReportsData = () => {
       try {
         setLoading(true);
         const [schedulesSnap, reservationsSnap] = await Promise.all([
-          get(ref(database, "schedules")),
-          get(ref(database, "reservations"))
+          get(ref(getDb(), "schedules")),
+          get(ref(getDb(), "reservations"))
         ]);
 
         let rawSchedules = [];

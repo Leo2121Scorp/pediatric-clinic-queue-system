@@ -1,4 +1,4 @@
-import { database } from "../firebase/database";
+import { getDb } from "../firebase/database";
 import { auth } from "../firebase/auth";
 import { getPushApiBase } from "./pushService";
 import { ref, push, set, get, update, query, orderByChild, equalTo, serverTimestamp, runTransaction } from "firebase/database";
@@ -29,7 +29,7 @@ import { finalizeParentClaim } from "../utils/parentClaimFinalize";
 export { finalizeParentClaim } from "../utils/parentClaimFinalize";
 
 const requireReservation = async (reservationId) => {
-  const snap = await get(ref(database, `reservations/${reservationId}`));
+  const snap = await get(ref(getDb(), `reservations/${reservationId}`));
   if (!snap.exists()) {
     throw new Error("Reservation not found.");
   }
@@ -42,7 +42,7 @@ const resolveActor = async () => {
     return { actorUid: null, actorRole: null };
   }
   try {
-    const profileSnap = await get(ref(database, `users/${user.uid}`));
+    const profileSnap = await get(ref(getDb(), `users/${user.uid}`));
     const role = profileSnap.exists() ? profileSnap.val()?.role || null : null;
     return { actorUid: user.uid, actorRole: role };
   } catch {
@@ -92,10 +92,16 @@ const callClaimReservation = async (payload) => {
     throw wrapped;
   }
   const body = await response.json().catch(() => ({}));
+  // #region agent log
+  fetch('http://127.0.0.1:7708/ingest/a0da62a0-b5bc-4cd3-91aa-e6028c550e99',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'98046d'},body:JSON.stringify({sessionId:'98046d',runId:'post-fix',hypothesisId:'A',location:'reservationService.js:callClaimReservation',message:'claim response',data:{ok:response.ok,status:response.status,host:(()=>{try{return new URL(response.url).host}catch{return 'bad-url'}})(),hasReservationId:Boolean(body&&body.reservationId),bodyKeys:body&&typeof body==='object'?Object.keys(body):[]},timestamp:Date.now()})}).catch(()=>{});
+  // #endregion
   if (!response.ok) {
     const wrapped = new Error(body.message || "Could not reserve a slot.");
     wrapped.cause = body;
     throw wrapped;
+  }
+  if (!body?.reservationId) {
+    throw new Error("The clinic server did not confirm this reservation. Please try again.");
   }
   return body;
 };
@@ -111,7 +117,7 @@ export const claimParentReservation = async (scheduleId) => {
 
 export const createReservation = async (reservationData) => {
   const q = query(
-    ref(database, "reservations"),
+    ref(getDb(), "reservations"),
     orderByChild("scheduleId"),
     equalTo(reservationData.scheduleId)
   );
@@ -123,7 +129,7 @@ export const createReservation = async (reservationData) => {
     nextQueueNumber = maxNum + 1;
   }
 
-  const reservationRef = push(ref(database, "reservations"));
+  const reservationRef = push(ref(getDb(), "reservations"));
   const now = serverTimestamp();
   await set(reservationRef, {
     ...reservationData,
@@ -244,7 +250,7 @@ export const createWalkInReservation = async ({
 
 export const getReservationsBySchedule = async (scheduleId) => {
   const q = query(
-    ref(database, "reservations"),
+    ref(getDb(), "reservations"),
     orderByChild("scheduleId"),
     equalTo(scheduleId)
   );
@@ -264,7 +270,7 @@ export const checkExistingReservation = async (scheduleId, parentId) => {
 
 export const checkExistingReservationOnDate = async (parentId, clinicDate) => {
   const q = query(
-    ref(database, "reservations"),
+    ref(getDb(), "reservations"),
     orderByChild("parentId"),
     equalTo(parentId)
   );
@@ -292,7 +298,7 @@ export const checkExistingReservationOnDate = async (parentId, clinicDate) => {
 };
 
 export const expireReservation = async (reservationId) => {
-  const resRef = ref(database, `reservations/${reservationId}`);
+  const resRef = ref(getDb(), `reservations/${reservationId}`);
   const snap = await get(resRef);
   if (!snap.exists()) return;
   const val = snap.val();
@@ -315,7 +321,7 @@ export const expireReservation = async (reservationId) => {
 
 export const checkCompletedConsultationOnDate = async (parentId, clinicDate, doctorId = null) => {
   const q = query(
-    ref(database, "reservations"),
+    ref(getDb(), "reservations"),
     orderByChild("parentId"),
     equalTo(parentId)
   );
@@ -433,7 +439,7 @@ export const subscribeToParentReservations = (parentId, callback) => {
     return () => {};
   }
   const q = query(
-    ref(database, "reservations"),
+    ref(getDb(), "reservations"),
     orderByChild("parentId"),
     equalTo(parentId)
   );
@@ -456,7 +462,7 @@ export const subscribeToScheduleReservations = (scheduleId, callback) => {
     return () => {};
   }
   const q = query(
-    ref(database, "reservations"),
+    ref(getDb(), "reservations"),
     orderByChild("scheduleId"),
     equalTo(scheduleId)
   );
@@ -474,7 +480,7 @@ export const subscribeToScheduleReservations = (scheduleId, callback) => {
 
 export const subscribeToAllReservations = (callback) => {
   if (typeof callback !== "function") return () => {};
-  const reservationsRef = ref(database, "reservations");
+  const reservationsRef = ref(getDb(), "reservations");
   return subscribeOnValue(reservationsRef, (snapshot) => {
     if (!snapshot.exists()) {
       callback([]);
@@ -493,7 +499,7 @@ export const cancelReservation = async (reservationId) => {
   const gate = assertCanCancelReservation(reservation, actor);
   if (!gate.ok) throw new Error(gate.message);
 
-  await update(ref(database, `reservations/${reservationId}`), {
+  await update(ref(getDb(), `reservations/${reservationId}`), {
     status: "cancelled",
     cancelledAt: Date.now(),
   });
@@ -502,7 +508,7 @@ export const cancelReservation = async (reservationId) => {
 
 export const validateReservationByCode = async (code) => {
   const q = query(
-    ref(database, "reservations"),
+    ref(getDb(), "reservations"),
     orderByChild("reservationCode"),
     equalTo(code)
   );
@@ -524,7 +530,7 @@ export const checkInReservation = async (reservationId, secretaryUid) => {
   const gate = assertCanCheckIn(reservation);
   if (!gate.ok) throw new Error(gate.message);
 
-  await update(ref(database, `reservations/${reservationId}`), {
+  await update(ref(getDb(), `reservations/${reservationId}`), {
     checkedIn: true,
     checkedInAt: Date.now(),
     checkedInBy: secretaryUid,
@@ -542,7 +548,7 @@ export const startConsultation = async (reservationId) => {
   const gate = assertCanStartConsultation(reservation);
   if (!gate.ok) throw new Error(gate.message);
 
-  await update(ref(database, `reservations/${reservationId}`), {
+  await update(ref(getDb(), `reservations/${reservationId}`), {
     status: "in_consultation",
     consultationStartedAt: Date.now(),
   });
@@ -554,7 +560,7 @@ export const sendToDoctor = async (reservationId) => {
   const gate = assertCanSendToDoctor(reservation);
   if (!gate.ok) throw new Error(gate.message);
 
-  await update(ref(database, `reservations/${reservationId}`), {
+  await update(ref(getDb(), `reservations/${reservationId}`), {
     status: "with_doctor",
     sentToDoctorAt: Date.now(),
     consultationStartedAt: Date.now(),
@@ -567,7 +573,7 @@ export const completeConsultation = async (reservationId, doctorNotes) => {
   const gate = assertCanCompleteConsultation(reservation);
   if (!gate.ok) throw new Error(gate.message);
 
-  await update(ref(database, `reservations/${reservationId}`), {
+  await update(ref(getDb(), `reservations/${reservationId}`), {
     status: "consultation_completed",
     consultationCompletedAt: Date.now(),
     doctorNotes: doctorNotes || "",
@@ -581,7 +587,7 @@ export const updatePatientInfo = async (reservationId, patientInfo) => {
   const gate = assertCanUpdatePatientInfo(reservation, actor);
   if (!gate.ok) throw new Error(gate.message);
 
-  await update(ref(database, `reservations/${reservationId}`), {
+  await update(ref(getDb(), `reservations/${reservationId}`), {
     ...patientInfo,
     patientInfoCompleted: true,
   });
@@ -601,7 +607,7 @@ const applyForfeitFields = (current, { forfeitureReason, penaltyCount, now }) =>
 });
 
 export const penalizeReservation = async (reservationId, schedule, allScheduleReservations = [], penaltyMoveBack) => {
-  const snap = await get(ref(database, `reservations/${reservationId}`));
+  const snap = await get(ref(getDb(), `reservations/${reservationId}`));
   if (!snap.exists()) return;
   const val = snap.val();
 
@@ -614,7 +620,7 @@ export const penalizeReservation = async (reservationId, schedule, allScheduleRe
   const forfeitOnZeroMoveBack = moveBack === 0;
 
   if (forfeitOnZeroMoveBack) {
-    await update(ref(database, `reservations/${reservationId}`), applyForfeitFields(val, {
+    await update(ref(getDb(), `reservations/${reservationId}`), applyForfeitFields(val, {
       forfeitureReason: "Setting the Penalty Move-Back count to 0 results in an automatic forfeit for the parent.",
       penaltyCount: currentPenaltyCount,
       now,
@@ -671,7 +677,7 @@ export const penalizeReservation = async (reservationId, schedule, allScheduleRe
       ? existingExpiry
       : now + timerMinutes * 60 * 1000;
 
-    await update(ref(database, `reservations/${reservationId}`), {
+    await update(ref(getDb(), `reservations/${reservationId}`), {
       penaltyCount: currentPenaltyCount,
       sortTimestamp: newSortTimestamp,
       lastPenalizedAt: now,
@@ -700,7 +706,7 @@ export const penalizeReservation = async (reservationId, schedule, allScheduleRe
  */
 export const forfeitReservationIfTimerExpired = async (reservationId) => {
   if (!reservationId) return false;
-  const resRef = ref(database, `reservations/${reservationId}`);
+  const resRef = ref(getDb(), `reservations/${reservationId}`);
   const now = Date.now();
 
   const result = await runTransaction(resRef, (current) => {
@@ -737,7 +743,7 @@ export const forfeitReservationIfTimerExpired = async (reservationId) => {
 
 export const requestCheckInReminder = async (reservationId) => {
   if (!reservationId) return;
-  await update(ref(database, `reservations/${reservationId}`), {
+  await update(ref(getDb(), `reservations/${reservationId}`), {
     checkInRequestedAt: Date.now(),
   });
 };
@@ -749,7 +755,7 @@ export const closeActiveReservationsForParent = async (parentId, { terminalStatu
   }
 
   const q = query(
-    ref(database, "reservations"),
+    ref(getDb(), "reservations"),
     orderByChild("parentId"),
     equalTo(parentId)
   );
@@ -775,7 +781,7 @@ export const closeActiveReservationsForParent = async (parentId, { terminalStatu
   });
 
   if (Object.keys(rootUpdates).length > 0) {
-    await update(ref(database), rootUpdates);
+    await update(ref(getDb()), rootUpdates);
   }
 
   for (const scheduleId of scheduleIds) {

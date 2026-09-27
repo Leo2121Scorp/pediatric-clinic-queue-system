@@ -1,4 +1,4 @@
-import { database } from "../firebase/database";
+import { getDb } from "../firebase/database";
 import { ref, push, update, get } from "firebase/database";
 import { getAuth } from "firebase/auth";
 import { subscribeOnValue } from "../firebase/rtdbSubscribe";
@@ -14,12 +14,12 @@ export const cleanupNonParentNotifications = async () => {
     const uid = getAuth().currentUser?.uid;
     if (!uid) return;
 
-    const roleSnapshot = await get(ref(database, `users/${uid}/role`));
+    const roleSnapshot = await get(ref(getDb(), `users/${uid}/role`));
     const role = roleSnapshot.exists() ? roleSnapshot.val() : null;
     // Doctor owns clinic-admin cleanup; admin kept during transition
     if (role !== "doctor" && role !== "admin") return;
 
-    const snapshot = await get(ref(database, "users"));
+    const snapshot = await get(ref(getDb(), "users"));
     if (!snapshot.exists()) return;
 
     const users = snapshot.val();
@@ -35,7 +35,7 @@ export const cleanupNonParentNotifications = async () => {
     });
 
     if (Object.keys(updates).length > 0) {
-      await update(ref(database), updates);
+      await update(ref(getDb()), updates);
       console.log("[NotificationCenterService] Cleaned non-parent notifications:", Object.keys(updates));
     }
   } catch (error) {
@@ -50,7 +50,7 @@ export const cleanupNonParentNotifications = async () => {
 export const migrateUserNotifications = async (parentId) => {
   if (!parentId) return;
   try {
-    const oldSnap = await get(ref(database, `users/${parentId}/notifications`));
+    const oldSnap = await get(ref(getDb(), `users/${parentId}/notifications`));
     if (oldSnap.exists() && oldSnap.val()) {
       const oldNotifs = oldSnap.val();
       const updates = {};
@@ -73,7 +73,7 @@ export const migrateUserNotifications = async (parentId) => {
       });
       // Remove legacy notification storage from User entity
       updates[`users/${parentId}/notifications`] = null;
-      await update(ref(database), updates);
+      await update(ref(getDb()), updates);
       console.log(`[NotificationCenterService] Migrated ${Object.keys(oldNotifs).length} notifications for user ${parentId} to notifications/${parentId}`);
     }
   } catch (err) {
@@ -85,7 +85,7 @@ export const saveNotification = async (parentId, notificationData) => {
   if (!parentId) return null;
   try {
     // Parent-Only Phase guard: verify user role is 'parent' before creating notification records
-    const roleSnapshot = await get(ref(database, `users/${parentId}/role`));
+    const roleSnapshot = await get(ref(getDb(), `users/${parentId}/role`));
     if (roleSnapshot.exists() && roleSnapshot.val() !== "parent") {
       return null;
     }
@@ -93,9 +93,9 @@ export const saveNotification = async (parentId, notificationData) => {
     // Use dedupeKey for cross-device idempotency, falling back to push() if none exists
     const safeKey = notificationData.dedupeKey 
       ? notificationData.dedupeKey.replace(/[.#$\[\]]/g, '_')
-      : push(ref(database, `notifications/${parentId}`)).key;
+      : push(ref(getDb(), `notifications/${parentId}`)).key;
       
-    const notifRef = ref(database, `notifications/${parentId}/${safeKey}`);
+    const notifRef = ref(getDb(), `notifications/${parentId}/${safeKey}`);
 
     const type = notificationData.type || notificationData.eventId || "INFO";
     const body = notificationData.body || notificationData.message || "";
@@ -131,7 +131,7 @@ export const subscribeToUserNotifications = (parentId, callback) => {
   // Automatically migrate legacy notifications from User entity if any exist
   migrateUserNotifications(parentId);
 
-  const notifRef = ref(database, `notifications/${parentId}`);
+  const notifRef = ref(getDb(), `notifications/${parentId}`);
   return subscribeOnValue(notifRef, (snapshot) => {
     if (snapshot.exists()) {
       const data = snapshot.val();
@@ -154,7 +154,7 @@ export const markNotificationsAsRead = async (parentId, notificationIds = []) =>
     notificationIds.forEach((id) => {
       updates[`notifications/${parentId}/${id}/read`] = true;
     });
-    await update(ref(database), updates);
+    await update(ref(getDb()), updates);
   } catch (error) {
     console.error("[NotificationCenterService] Failed to mark notifications as read:", error);
   }

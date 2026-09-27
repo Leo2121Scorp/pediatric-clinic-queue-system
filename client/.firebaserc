@@ -9,6 +9,18 @@
         "plusqueue": [
           "plus-queue"
         ]
+      },
+      "database": {
+        "demo": [
+          "pediatric-clinic-queue-testing-demo"
+        ]
+      }
+    },
+    "pediatric-clinic-queue-system": {
+      "database": {
+        "demo": [
+          "pediatric-clinic-queue-system-demo"
+        ]
       }
     }
   },

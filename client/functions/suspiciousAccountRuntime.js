@@ -1,4 +1,3 @@
-const admin = require("firebase-admin");
 const { manilaDateString } = require("./manilaDate");
 const { SUSPICIOUS_FLAG_STATUS } = require("./suspiciousAccountConfig");
 const {
@@ -7,8 +6,10 @@ const {
   canFlagAccount,
 } = require("./suspiciousAccountRules");
 
+const { getRtdb } = require("./rtdbRouter");
+
 function db() {
-  return admin.database();
+  return getRtdb();
 }
 
 async function loadParentReservations(parentId) {

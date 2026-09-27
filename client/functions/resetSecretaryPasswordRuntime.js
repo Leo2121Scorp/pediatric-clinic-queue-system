@@ -1,4 +1,5 @@
 const crypto = require("crypto");
+const { databaseFor } = require("./rtdbRouter");
 
 function makeError(message, status, code) {
   const err = new Error(message);
@@ -48,7 +49,7 @@ async function resetSecretaryPassword({ admin, callerUid, targetUid }) {
     throw makeError("You cannot reset your own password through this action.", 400, "failed-precondition");
   }
 
-  const db = admin.database();
+  const db = databaseFor(admin);
   const callerSnap = await db.ref(`users/${callerUid}`).once("value");
   const caller = callerSnap.exists() ? callerSnap.val() : null;
   const callerAllowed =

@@ -1,4 +1,4 @@
-import { database } from "../firebase/database";
+import { getDb } from "../firebase/database";
 import { ref, get, update, query, orderByChild, equalTo } from "firebase/database";
 import { ACTIVE_RESERVATION_STATUSES } from "./reservationService";
 import {
@@ -155,7 +155,7 @@ export const recalculateEntireQueue = async (scheduleId, options = {}) => {
   if (!scheduleId) return;
 
   const q = query(
-    ref(database, "reservations"),
+    ref(getDb(), "reservations"),
     orderByChild("scheduleId"),
     equalTo(scheduleId)
   );
@@ -222,7 +222,7 @@ export const recalculateEntireQueue = async (scheduleId, options = {}) => {
 
   let queueIsLive = false;
   try {
-    const scheduleSnap = await get(ref(database, `schedules/${scheduleId}`));
+    const scheduleSnap = await get(ref(getDb(), `schedules/${scheduleId}`));
     queueIsLive = isLiveQueueStatus(scheduleSnap.exists() ? scheduleSnap.val()?.queueStatus : null);
   } catch (error) {
     console.warn("Could not read schedule queue status for current-turn stamp:", error);
@@ -244,6 +244,6 @@ export const recalculateEntireQueue = async (scheduleId, options = {}) => {
 
   // Step 7: Write ALL updated queue data back to Firebase
   if (Object.keys(updates).length > 0) {
-    await update(ref(database), updates);
+    await update(ref(getDb()), updates);
   }
 };

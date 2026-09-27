@@ -1,4 +1,4 @@
-import { database } from "../firebase/database";
+import { getDb } from "../firebase/database";
 import { ref, push, set, get, update, remove } from "firebase/database";
 import { subscribeOnValue } from "../firebase/rtdbSubscribe";
 import { getBranchConfigurations } from "./branchConfigurationService";
@@ -25,13 +25,13 @@ import {
   sameBranch,
 } from "../utils/scheduleCalendar";
 
-const closuresRef = ref(database, "clinicClosures");
+const closuresRef = () => ref(getDb(), "clinicClosures");
 
 // SCHEDULE_AVAILABLE parent broadcast removed (audit M1). Publish stays quiet for parents.
 
 export const subscribeToClinicClosures = (callback) => {
   if (typeof callback !== "function") return () => {};
-  return subscribeOnValue(closuresRef, (snapshot) => {
+  return subscribeOnValue(closuresRef(), (snapshot) => {
     if (!snapshot.exists()) {
       callback([]);
       return;
@@ -42,7 +42,7 @@ export const subscribeToClinicClosures = (callback) => {
 };
 
 const loadSchedules = async () => {
-  const snapshot = await get(ref(database, "schedules"));
+  const snapshot = await get(ref(getDb(), "schedules"));
   if (!snapshot.exists()) return [];
   return Object.entries(snapshot.val()).map(([id, value]) => ({ id, ...value }));
 };
@@ -92,7 +92,7 @@ async function contextForBranch(branchId, branchName) {
   const branches = await getBranchConfigurations();
   const branch = branchRecord(branches, branchId, branchName);
   const schedules = await loadSchedules();
-  const closureSnap = await get(closuresRef);
+  const closureSnap = await get(closuresRef());
   const closures = closureSnap.exists()
     ? Object.entries(closureSnap.val()).map(([id, value]) => ({ id, ...value }))
     : [];
@@ -271,7 +271,7 @@ export async function previewClosure({ branchId, branchName, startDate, endDate,
     ? branches
     : [branchRecord(branches, branchId, branchName)].filter(Boolean);
   const schedules = await loadSchedules();
-  const closureSnap = await get(closuresRef);
+  const closureSnap = await get(closuresRef());
   const closures = closureSnap.exists()
     ? Object.entries(closureSnap.val()).map(([id, value]) => ({ id, ...value }))
     : [];
@@ -324,7 +324,7 @@ async function cancelWaitingReservations(schedule, closureId, reasonLabel) {
     }
   });
   if (Object.keys(updates).length > 0) {
-    await update(ref(database), updates);
+    await update(ref(getDb()), updates);
     await recalculateRollingValidation(schedule.id);
     await recalculateEntireQueue(schedule.id);
   }
@@ -355,7 +355,7 @@ export async function applyClosure({
   let cancelled = 0;
 
   for (const branch of preview.targets) {
-    const closureRef = push(closuresRef);
+    const closureRef = push(closuresRef());
     await set(closureRef, {
       branch: branch.name,
       branchId: branch.id,
@@ -379,7 +379,7 @@ export async function applyClosure({
         await deleteSchedule(schedule.id);
         continue;
       }
-      await update(ref(database, `schedules/${schedule.id}`), {
+      await update(ref(getDb(), `schedules/${schedule.id}`), {
         dayClosed: true,
         closureId: closureRef.key,
         closureReason: reason,
@@ -407,7 +407,7 @@ export async function applyClosure({
 }
 
 export async function removeClosure(closureId) {
-  const snapshot = await get(ref(database, `clinicClosures/${closureId}`));
+  const snapshot = await get(ref(getDb(), `clinicClosures/${closureId}`));
   if (!snapshot.exists()) throw new Error("Closure not found.");
   const closure = snapshot.val();
   const today = manilaDateString();
@@ -415,7 +415,7 @@ export async function removeClosure(closureId) {
     throw new Error("Only a future closure can be removed.");
   }
 
-  const reservationSnap = await get(ref(database, "reservations"));
+  const reservationSnap = await get(ref(getDb(), "reservations"));
   if (reservationSnap.exists()) {
     const cancelled = Object.values(reservationSnap.val()).some(
       (reservation) => reservation.closureId === closureId && reservation.status === "cancelled_by_clinic"
@@ -436,9 +436,9 @@ export async function removeClosure(closureId) {
     }
   });
   if (Object.keys(updates).length > 0) {
-    await update(ref(database), updates);
+    await update(ref(getDb()), updates);
   }
-  await remove(ref(database, `clinicClosures/${closureId}`));
+  await remove(ref(getDb(), `clinicClosures/${closureId}`));
   logAuditEvent({
     action: AUDIT_ACTIONS.CLINIC_CLOSURE_REMOVED,
     category: AUDIT_CATEGORIES.SCHEDULE_MANAGEMENT,

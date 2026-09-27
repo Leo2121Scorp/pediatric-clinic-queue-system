@@ -14,8 +14,10 @@ const PURPOSE_LOGIN = "login";
 const PURPOSE_REGISTER = "register";
 const PURPOSE_UPDATE = "update";
 
+const { getRtdb } = require("./rtdbRouter");
+
 function getDb() {
-  return admin.database();
+  return getRtdb();
 }
 
 function phoneToKey(phoneE164) {

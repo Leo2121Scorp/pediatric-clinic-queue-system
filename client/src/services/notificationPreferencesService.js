@@ -1,5 +1,5 @@
 import { ref, update } from "firebase/database";
-import { database } from "../firebase/database";
+import { getDb } from "../firebase/database";
 
 let cachedInAppEnabled = true;
 
@@ -38,7 +38,7 @@ export async function persistNotificationPreferences(uid, fields) {
   if (fields.notificationTokenUpdatedAt !== undefined) {
     updates.notificationTokenUpdatedAt = fields.notificationTokenUpdatedAt;
   }
-  await update(ref(database, `users/${uid}`), updates);
+  await update(ref(getDb(), `users/${uid}`), updates);
 }
 
 export async function setInAppNotificationsEnabled(uid, enabled) {

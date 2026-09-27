@@ -6,6 +6,7 @@ const {
   minutesFromTime,
 } = require("./manilaDate");
 const { claimParentDateCap, releaseParentDateCap } = require("./parentBookingCap");
+const { databaseFor } = require("./rtdbRouter");
 
 const CLOSED_MESSAGE = "The clinic is closed on this date.";
 const WINDOW_MESSAGE = "This date is outside the booking window.";
@@ -151,7 +152,7 @@ async function rollbackSlot(bookingRef) {
 
 async function claimReservationSlot({ admin, callerUid, payload }) {
   if (!callerUid) throw coded("unauthenticated", "You must be signed in.");
-  const db = admin.database();
+  const db = databaseFor(admin);
   const userSnap = await db.ref(`users/${callerUid}`).once("value");
   if (!userSnap.exists()) throw coded("permission-denied", "Account not found.");
   const user = userSnap.val() || {};

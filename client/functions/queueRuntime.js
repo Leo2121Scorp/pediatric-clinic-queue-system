@@ -1,5 +1,3 @@
-const admin = require("firebase-admin");
-
 const ACTIVE_RESERVATION_STATUSES = [
   "reserved",
   "checked_in",
@@ -41,8 +39,10 @@ function firstPenalizeTargetInQueue(activeQueue) {
   return activeQueue.find((r) => UNCHECKED_WAITING_STATUSES.includes(r.status)) || null;
 }
 
+const { getRtdb } = require("./rtdbRouter");
+
 function db() {
-  return admin.database();
+  return getRtdb();
 }
 
 function computeReservationState(reservation, allReservations = [], options = {}) {

@@ -1,4 +1,3 @@
-const admin = require("firebase-admin");
 const webpush = require("web-push");
 const {
   deliverSmsForNotification,
@@ -126,8 +125,10 @@ const NOTIFICATION_CONFIG = {
   },
 };
 
+const { getRtdb } = require("./rtdbRouter");
+
 function db() {
-  return admin.database();
+  return getRtdb();
 }
 
 function sanitizeKey(value) {

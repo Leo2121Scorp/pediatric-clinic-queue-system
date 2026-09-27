@@ -1,7 +1,7 @@
 import { Capacitor } from "@capacitor/core";
 import { auth } from "../firebase/auth";
 import { ref, update } from "firebase/database";
-import { database } from "../firebase/database";
+import { getDb } from "../firebase/database";
 import { getNativeNotificationPermissionStatus, requestNativeNotificationPermission } from "./nativeNotificationService";
 import { persistNotificationPreferences } from "./notificationPreferencesService";
 const SW_PATH = "/sw.js";
@@ -22,6 +22,10 @@ export function getPushApiBase() {
   const explicit = import.meta.env.VITE_API_URL;
   if (typeof explicit === "string" && explicit.trim()) {
     return explicit.replace(/\/$/, "");
+  }
+  // The installed app is served from the WebView origin, which has no /api rewrite.
+  if (Capacitor.isNativePlatform()) {
+    return "https://plus-queue.web.app";
   }
   return "";
 }
@@ -168,7 +172,7 @@ async function persistSubscriptionToDatabase(uid, subscriptionJson, extra = {}) 
     });
     return key;
   }
-  await update(ref(database, `users/${uid}/pushSubscriptions/${key}`), {
+  await update(ref(getDb(), `users/${uid}/pushSubscriptions/${key}`), {
     endpoint: subscriptionJson.endpoint,
     expirationTime: subscriptionJson.expirationTime || null,
     keys: subscriptionJson.keys || null,
@@ -189,7 +193,7 @@ async function removeSubscriptionFromDatabase(uid, subscriptionJson) {
   const storedKey = localStorage.getItem(localSubKeyName(uid));
   const key = storedKey || (subscriptionJson?.endpoint ? await sha256Hex(subscriptionJson.endpoint) : null);
   if (!key) return;
-  await update(ref(database, `users/${uid}/pushSubscriptions`), {
+  await update(ref(getDb(), `users/${uid}/pushSubscriptions`), {
     [key]: null,
   });
   localStorage.removeItem(localSubKeyName(uid));

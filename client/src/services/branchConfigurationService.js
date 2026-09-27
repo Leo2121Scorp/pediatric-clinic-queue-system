@@ -1,4 +1,4 @@
-import { database } from "../firebase/database";
+import { getDb } from "../firebase/database";
 import { ref, push, set, get, update, remove } from "firebase/database";
 import { subscribeOnValue } from "../firebase/rtdbSubscribe";
 import { logAuditEvent, AUDIT_ACTIONS, AUDIT_CATEGORIES } from "./auditService";
@@ -92,7 +92,7 @@ const migrateToV2 = async (branches) => {
         }
       }
 
-      await update(ref(database, `branchConfigurations/${branch.id}`), {
+      await update(ref(getDb(), `branchConfigurations/${branch.id}`), {
         schedule: newSchedule,
         schedulePatterns: null
       });
@@ -106,7 +106,7 @@ const migrateToV2 = async (branches) => {
 };
 
 export const getBranchConfigurations = async () => {
-  const snapshot = await get(ref(database, "branchConfigurations"));
+  const snapshot = await get(ref(getDb(), "branchConfigurations"));
   if (snapshot.exists()) {
     const data = snapshot.val();
     const branches = Object.entries(data).map(([id, value]) => ({ id, ...value }));
@@ -117,7 +117,7 @@ export const getBranchConfigurations = async () => {
 
 export const subscribeToBranchConfigurations = (callback) => {
   if (typeof callback !== "function") return () => {};
-  const branchesRef = ref(database, "branchConfigurations");
+  const branchesRef = ref(getDb(), "branchConfigurations");
   return subscribeOnValue(branchesRef, async (snapshot) => {
     if (!snapshot.exists()) {
       callback([]);
@@ -134,7 +134,7 @@ export const seedDefaultBranches = async () => {
   const existing = await getBranchConfigurations();
   if (existing.length === 0) {
     for (const branch of DEFAULT_BRANCHES) {
-      const branchRef = push(ref(database, "branchConfigurations"));
+      const branchRef = push(ref(getDb(), "branchConfigurations"));
       await set(branchRef, {
         ...branch,
         createdAt: Date.now()
@@ -144,7 +144,7 @@ export const seedDefaultBranches = async () => {
 };
 
 export const createBranch = async (branchData) => {
-  const branchRef = push(ref(database, "branchConfigurations"));
+  const branchRef = push(ref(getDb(), "branchConfigurations"));
   await set(branchRef, {
     ...branchData,
     createdAt: Date.now()
@@ -163,11 +163,11 @@ export const createBranch = async (branchData) => {
 };
 
 export const updateBranch = async (branchId, branchData) => {
-  const existingSnap = await get(ref(database, `branchConfigurations/${branchId}`));
+  const existingSnap = await get(ref(getDb(), `branchConfigurations/${branchId}`));
   const oldName = existingSnap.exists() ? existingSnap.val().name : null;
   const newName = branchData.name;
 
-  await update(ref(database, `branchConfigurations/${branchId}`), branchData);
+  await update(ref(getDb(), `branchConfigurations/${branchId}`), branchData);
 
   // Keep schedule.branch and secretary assignedBranch in sync when the display name changes.
   // Without this, Start Queue works for the doctor but secretaries filter on a stale name.
@@ -175,7 +175,7 @@ export const updateBranch = async (branchId, branchData) => {
     const cascadeUpdates = {};
     const oldNormalized = normalizeBranchName(oldName);
 
-    const schedulesSnap = await get(ref(database, "schedules"));
+    const schedulesSnap = await get(ref(getDb(), "schedules"));
     if (schedulesSnap.exists()) {
       for (const [id, schedule] of Object.entries(schedulesSnap.val())) {
         const matchesId = schedule.branchId === branchId;
@@ -189,7 +189,7 @@ export const updateBranch = async (branchId, branchData) => {
       }
     }
 
-    const usersSnap = await get(ref(database, "users"));
+    const usersSnap = await get(ref(getDb(), "users"));
     if (usersSnap.exists()) {
       for (const [id, user] of Object.entries(usersSnap.val())) {
         if (user.role !== "secretary") continue;
@@ -205,7 +205,7 @@ export const updateBranch = async (branchId, branchData) => {
     }
 
     if (Object.keys(cascadeUpdates).length > 0) {
-      await update(ref(database), cascadeUpdates);
+      await update(ref(getDb()), cascadeUpdates);
     }
   }
   
@@ -220,7 +220,7 @@ export const updateBranch = async (branchId, branchData) => {
 };
 
 export const deleteBranch = async (branchId) => {
-  await remove(ref(database, `branchConfigurations/${branchId}`));
+  await remove(ref(getDb(), `branchConfigurations/${branchId}`));
   
   logAuditEvent({
     action: AUDIT_ACTIONS.BRANCH_DELETED,
@@ -285,7 +285,7 @@ export const validateScheduleClosingTime = async (branchName, clinicDate) => {
 };
 
 export const checkBranchInUse = async (branchName) => {
-  const schedulesSnapshot = await get(ref(database, "schedules"));
+  const schedulesSnapshot = await get(ref(getDb(), "schedules"));
   let hasPublishedSchedules = false;
   let scheduleIds = [];
   

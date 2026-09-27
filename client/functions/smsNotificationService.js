@@ -2,8 +2,8 @@
  * Queue SMS copy + dispatch claims (Cloud Functions mirror).
  */
 
-const admin = require("firebase-admin");
 const { sendSms, normalizePhoneE164 } = require("./smsService");
+const { getRtdb, isSmsSuppressed } = require("./rtdbRouter");
 
 const SMS_NOTIFICATION_EVENTS = new Set([
   "SLOT_RESERVED",
@@ -67,7 +67,7 @@ const DEFAULT_SMS_TEMPLATES = {
 };
 
 function db() {
-  return admin.database();
+  return getRtdb();
 }
 
 function sanitizeKey(value) {
@@ -363,6 +363,9 @@ async function claimPenalizedSms(reservationId, penaltyCount) {
 }
 
 async function deliverSmsForNotification(eventId, context = {}, notificationId) {
+  if (isSmsSuppressed()) {
+    return { success: true, skipped: true, reason: "demo_database" };
+  }
   if (!SMS_NOTIFICATION_EVENTS.has(eventId)) {
     return { success: false, skipped: true, reason: "not_sms_event" };
   }
@@ -470,6 +473,9 @@ const SKIP_WALK_IN_SMS_QUEUE_STATUSES = ["closed", "completed", "ended"];
  * live-queue template via buildSmsMessage (templateSlotReservedActiveQueue).
  */
 async function deliverWalkInReservationSms(reservation) {
+  if (isSmsSuppressed()) {
+    return { success: true, skipped: true, reason: "demo_database" };
+  }
   if (!reservation || reservation.source !== "walk_in" || reservation.parentId) {
     return { success: false, skipped: true, reason: "not_walk_in" };
   }

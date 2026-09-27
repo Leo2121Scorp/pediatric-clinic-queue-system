@@ -1,16 +1,21 @@
 import { ref, onValue } from "firebase/database";
-import { database } from "../firebase/database";
+import { getDb, onDatabaseChange } from "../firebase/database";
 
 let serverTimeOffset = 0;
+let unsubOffset = () => {};
 
-// Subscribe to Firebase server time offset to ensure synchronized time across all devices
-const offsetRef = ref(database, ".info/serverTimeOffset");
-onValue(offsetRef, (snap) => {
-  const offset = snap.val();
-  if (typeof offset === "number") {
-    serverTimeOffset = offset;
-  }
-});
+function bindServerTimeOffset(db) {
+  unsubOffset();
+  unsubOffset = onValue(ref(db, ".info/serverTimeOffset"), (snap) => {
+    const offset = snap.val();
+    if (typeof offset === "number") {
+      serverTimeOffset = offset;
+    }
+  });
+}
+
+bindServerTimeOffset(getDb());
+onDatabaseChange((db) => bindServerTimeOffset(db));
 
 /**
  * Returns current timestamp synchronized with Firebase server clock.

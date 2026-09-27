@@ -1,9 +1,9 @@
-import { createContext, useCallback, useEffect, useState } from "react";
+import { createContext, useCallback, useEffect, useRef, useState } from "react";
 import { onAuthStateChanged, signOut } from "firebase/auth";
 import { ref, update, get } from "firebase/database";
 
 import { auth } from "../firebase/auth";
-import { database } from "../firebase/database";
+import { getDb, setActiveDatabase } from "../firebase/database";
 import { isPermissionDenied, safeUnsub, subscribeOnValue } from "../firebase/rtdbSubscribe";
 import { cleanupPushSubscriptionOnLogout, registerPushSubscription } from "../services/pushService";
 import { cacheNotificationPreferences } from "../services/notificationPreferencesService";
@@ -19,14 +19,19 @@ export const AuthContext = createContext();
 export function AuthProvider({ children }) {
     const [user, setUser] = useState(null);
     const [role, setRole] = useState(null);
+    const [isDemo, setIsDemo] = useState(false);
+    const [demoOperator, setDemoOperator] = useState(false);
     const [loading, setLoading] = useState(true);
+    const profileRef = useRef(null);
 
     useEffect(() => {
         let unsubscribeDB = null;
+        let activeTicket = 0;
 
         const unsubscribeAuth = onAuthStateChanged(
             auth,
             (currentUser) => {
+                const ticket = ++activeTicket;
                 if (unsubscribeDB) {
                     safeUnsub(unsubscribeDB);
                     unsubscribeDB = null;
@@ -36,7 +41,20 @@ export function AuthProvider({ children }) {
                     setLoading(true);
                     setUser(currentUser);
 
-                    const userRef = ref(database, `users/${currentUser.uid}`);
+                    currentUser.getIdTokenResult(true).then((tokenResult) => {
+                        const claims = tokenResult?.claims || {};
+                        const demoAccount = claims.isDemo === true;
+                        setActiveDatabase(demoAccount);
+                        setIsDemo(demoAccount);
+                        setDemoOperator(claims.demoOperator === true);
+                    }).catch((err) => {
+                        console.error("Failed to read auth claims:", err);
+                        setActiveDatabase(false);
+                        setIsDemo(false);
+                        setDemoOperator(false);
+                    }).finally(() => {
+                    if (ticket !== activeTicket) return;
+                    const userRef = ref(getDb(), `users/${currentUser.uid}`);
                     unsubscribeDB = subscribeOnValue(userRef, (snapshot) => {
                         if (snapshot.exists()) {
                             let userData = snapshot.val();
@@ -69,7 +87,7 @@ export function AuthProvider({ children }) {
 
                             // Backfill assignedBranchId and sync display name after admin renames
                             if (userData.role === "secretary" && userData.assignedBranch) {
-                                get(ref(database, "branchConfigurations")).then((branchSnap) => {
+                                get(ref(getDb(), "branchConfigurations")).then((branchSnap) => {
                                     if (!branchSnap.exists()) return;
                                     const branches = Object.entries(branchSnap.val()).map(([id, value]) => ({ id, ...value }));
                                     const match = branches.find((b) =>
@@ -85,7 +103,7 @@ export function AuthProvider({ children }) {
                                         syncUpdates.assignedBranch = match.name;
                                     }
                                     if (Object.keys(syncUpdates).length > 0) {
-                                        update(ref(database, `users/${currentUser.uid}`), syncUpdates).catch(console.error);
+                                        update(ref(getDb(), `users/${currentUser.uid}`), syncUpdates).catch(console.error);
                                     }
                                 }).catch(console.error);
                             }
@@ -116,7 +134,7 @@ export function AuthProvider({ children }) {
                             
                             if (needsUpdate) {
                                 // Background save, no need to await so it doesn't block login
-                                update(ref(database, `users/${currentUser.uid}`), updates).catch(console.error);
+                                update(ref(getDb(), `users/${currentUser.uid}`), updates).catch(console.error);
                             }
 
                             if (userData.isDeleted) {
@@ -162,6 +180,7 @@ export function AuthProvider({ children }) {
                             };
 
                             setRole(userData.role);
+                            profileRef.current = enrichedUser;
                             setUser(enrichedUser);
                             cacheNotificationPreferences(enrichedUser);
 
@@ -174,21 +193,28 @@ export function AuthProvider({ children }) {
                         }
                         setLoading(false);
                     });
-                } else {
-                    setUser((prevUser) => {
-                        if (prevUser && prevUser.role === "parent") {
-                            cleanupPushSubscriptionOnLogout(prevUser).catch(() => {});
-                        }
-                        cacheNotificationPreferences(null);
-                        return null;
                     });
+                } else {
+                    const previous = profileRef.current;
+                    profileRef.current = null;
+                    setUser(null);
                     setRole(null);
+                    setIsDemo(false);
+                    setDemoOperator(false);
+                    cacheNotificationPreferences(null);
+                    const releaseDatabase = () => setActiveDatabase(false);
+                    if (previous && previous.role === "parent") {
+                        cleanupPushSubscriptionOnLogout(previous).catch(() => {}).finally(releaseDatabase);
+                    } else {
+                        releaseDatabase();
+                    }
                     setLoading(false);
                 }
             }
         );
 
         return () => {
+            activeTicket += 1;
             if (unsubscribeDB) {
                 safeUnsub(unsubscribeDB);
             }
@@ -228,6 +254,8 @@ export function AuthProvider({ children }) {
             value={{
                 user,
                 role,
+                isDemo,
+                demoOperator,
                 loading,
                 updateContextUser
             }}

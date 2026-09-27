@@ -1,3 +1,5 @@
+const { databaseFor } = require("./rtdbRouter");
+
 const ACTIVE_STATUSES = new Set([
   "reserved",
   "checked_in",
@@ -70,7 +72,7 @@ async function releaseSlotIfTerminal(admin, before, after) {
   if (!ACTIVE_STATUSES.has(before.status) || !TERMINAL_STATUSES.has(after.status)) return;
   if (before.status === after.status) return;
 
-  const db = admin.database();
+  const db = databaseFor(admin);
   const reservationRef = db.ref(`reservations/${after.id}`);
   const flag = after.slotHeld ? "slotReleased" : "legacySlotReleased";
   if (after[flag]) return;

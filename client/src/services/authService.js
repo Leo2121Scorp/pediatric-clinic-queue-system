@@ -2,7 +2,7 @@ import { createUserWithEmailAndPassword, updateProfile, signInWithEmailAndPasswo
 import { ref, set, update, get } from "firebase/database";
 
 import { auth } from "../firebase/auth";
-import { database } from "../firebase/database";
+import { getDb } from "../firebase/database";
 import { cleanupPushSubscriptionOnLogout } from "./pushService";
 import { closeActiveReservationsForParent } from "./reservationService";
 
@@ -26,7 +26,7 @@ export const getParentPostAuthPath = (userData, firebaseUser) => {
 
 export const reactivateSelfDeactivatedParent = async (uid) => {
   if (!uid) return;
-  await update(ref(database, `users/${uid}`), {
+  await update(ref(getDb(), `users/${uid}`), {
     status: "active",
     deactivationSource: null,
     updatedAt: Date.now()
@@ -85,7 +85,7 @@ export const registerUser = async (
 };
 
 export const completeParentRegistration = async (user) => {
-  const userRef = ref(database, `users/${user.uid}`);
+  const userRef = ref(getDb(), `users/${user.uid}`);
   const snapshot = await get(userRef);
   if (snapshot.exists()) {
     return; // Profile already created
@@ -214,7 +214,7 @@ export const updateUserProfile = async (uid, data) => {
   if (data.clinicName !== undefined) updates.clinicName = data.clinicName;
 
   // Update Realtime Database
-  await update(ref(database, `users/${uid}`), updates);
+  await update(ref(getDb(), `users/${uid}`), updates);
 
   // Update Auth Profile
   const currentUser = auth.currentUser;
@@ -235,7 +235,7 @@ export const changeUserPassword = async (currentPassword, newPassword) => {
   await updatePassword(user, newPassword);
 
   // Clear forced-change flag after a successful password update.
-  await update(ref(database, `users/${user.uid}`), {
+  await update(ref(getDb(), `users/${user.uid}`), {
     mustChangePassword: false,
     updatedAt: Date.now(),
   }).catch(() => {});
@@ -243,7 +243,7 @@ export const changeUserPassword = async (currentPassword, newPassword) => {
 
 export const completeParentOnboarding = async (uid) => {
   if (!uid) return;
-  await update(ref(database, `users/${uid}`), {
+  await update(ref(getDb(), `users/${uid}`), {
     onboardingComplete: true,
     updatedAt: Date.now()
   });
@@ -259,7 +259,7 @@ export const deactivateOwnAccount = async (user) => {
       terminalStatus: "cancelled",
       reason: "Parent deactivated their account."
     });
-    await update(ref(database, `users/${uid}`), {
+    await update(ref(getDb(), `users/${uid}`), {
       status: "inactive",
       deactivationSource: "self",
       updatedAt: Date.now()
@@ -285,7 +285,7 @@ export const softDeleteOwnAccount = async (password, user) => {
       reason: "Parent account was deleted."
     });
 
-    await update(ref(database, `users/${currentUser.uid}`), {
+    await update(ref(getDb(), `users/${currentUser.uid}`), {
       isDeleted: true,
       deletedAt: Date.now(),
       status: "inactive",

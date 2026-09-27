@@ -7,7 +7,7 @@ import { subscribeToQueueConfiguration } from "../../services/systemConfiguratio
 import { computeReservationState, QUEUE_STATES, sortActiveQueue, recalculateEntireQueue } from "../../services/queueEngine";
 import { useAuth } from "../../hooks/useAuth";
 import { get, ref } from "firebase/database";
-import { database } from "../../firebase/database";
+import { getDb } from "../../firebase/database";
 import toast from "react-hot-toast";
 import { getReservationChildDisplayName } from "../../utils/reservationPatients";
 import ReservationPatientNames from "../../components/common/ReservationPatientNames";
@@ -437,7 +437,7 @@ export default function ManageQueue({ hideHeader = false }) {
     setLoadingContactInfo(true);
 
     try {
-      const parentRef = ref(database, `users/${res.parentId}`);
+      const parentRef = ref(getDb(), `users/${res.parentId}`);
       const snapshot = await get(parentRef);
       if (snapshot.exists()) {
         setParentContactInfo(snapshot.val());
